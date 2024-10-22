@@ -1,0 +1,16 @@
+description: "Hi! I will be your assistant in statistics from Faceit. Please, choose an option:"
+
+about: "Faceit Stats Bot is your go-to companion for tracking and analyzing your gaming performance on Faceit. Simply enter your username, and the bot will provide detailed statistics, including match history, win/loss ratios, Elo rating, and other key performance indicators. Stay up to date with your progress and improve your gameplay with personalized insights delivered straight to your Telegram chat."
+
+start_tracking_message: "Enter your Faceit username: "
+
+login_url: "https://redirect.me"
+
+start_command:
+  inline_keyboard:
+    keyboard_row_1:
+      options: "Options ❕"
+    keyboard_row_2:
+      settings: "Settings ⚙️"
+    keyboard_row_4:
+      github: "GitHub"

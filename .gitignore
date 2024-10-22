@@ -19,3 +19,16 @@
 
 # Go workspace file
 go.work
+
+*.dll
+*.so
+*.dylib
+
+*.test
+*.out
+go.work
+
+.idea
+.env
+.vscode
+.trunk

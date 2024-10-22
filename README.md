@@ -1,1 +1,1 @@
-# faceit-notifier
+# faceit-tracker
