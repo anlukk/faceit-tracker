@@ -32,3 +32,5 @@ go.work
 .env
 .vscode
 .trunk
+
+logs/logfile.log

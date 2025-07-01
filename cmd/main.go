@@ -1,41 +1,90 @@
 package main
 
 import (
+	"fmt"
 	"github.com/anlukk/faceit-tracker/internal/config"
-	//"github.com/anlukk/faceit-tracker/internal/faceit"
-	"github.com/anlukk/faceit-tracker/internal/logger"
+	"github.com/anlukk/faceit-tracker/internal/core"
+	"github.com/anlukk/faceit-tracker/internal/db"
+	"github.com/anlukk/faceit-tracker/internal/db/postgres"
+	"github.com/anlukk/faceit-tracker/internal/faceit"
+	"github.com/anlukk/faceit-tracker/internal/service"
 	"github.com/anlukk/faceit-tracker/internal/telegram"
+	"github.com/anlukk/faceit-tracker/pkg/logger"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	logg := logger.InitLogger()
-
 	cfg, err := config.NewConfig()
 	if err != nil {
-		logg.Panicf("config init: %v", err)
+		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	_, err = config.InitCommandsText("../locales/en.yaml")
+	fmt.Println(cfg.LoggerLevel)
+
+	_, sugar, err := logger.BuildLogger(cfg.LoggerLevel)
 	if err != nil {
-		logg.Panicf("commands init: %v", err)
+		panic(fmt.Sprintf("failed to build logger: %v", err))
 	}
+	defer sugar.Sync()
 
-	//TODO: remove config from services
-	// services := &services.Services{
-	// 	Logger:           logg,
-	// }
-
-	// newFaceit, err := faceit.NewFaceit(cfg.FaceitAPIToken)
-	// if err != nil {
-	// 	logg.Panicf("faceit service init: %v", err)
-	// }
-
-
-	bot, err := telegram.NewTelegram(cfg.TelegramToken, logg)
+	messages, err := config.LoadMessages()
 	if err != nil {
-		logg.Panicf("telegram service init: %v", err)
+		sugar.Fatalw("failed to load messages",
+			"error", err)
 	}
 
+	client, err := faceit.NewClientImpl(cfg.FaceitAPIToken)
+	if err != nil {
+		sugar.Fatalw("failed to create faceit client",
+			"error", err)
+	}
 
-	bot.StartService()
+	dbConn, err := postgres.NewDb(cfg)
+	if err != nil {
+		sugar.Fatalw("failed to initialize postgres",
+			"error", err)
+	}
+	defer func() {
+		if err := postgres.Close(dbConn); err != nil {
+			sugar.Errorw("failed to close postgres connection",
+				"error", err)
+		}
+	}()
+
+	// initialize repositories and services
+	repos := db.NewRepositories(dbConn)
+	services := service.NewServices(repos)
+
+	dependencies := &core.Dependencies{
+		Config:   cfg,
+		Messages: &messages,
+		Logger:   sugar,
+		Db:       dbConn,
+		Faceit:   client,
+		Services: services,
+	}
+
+	bot, err := telegram.NewTelegram(dependencies)
+	if err != nil {
+		sugar.Fatalw("failed to initialize telegram bot",
+			"error", err)
+	}
+
+	if err := bot.Start(); err != nil {
+		sugar.Fatalw("failed to start bot",
+			"error", err)
+	}
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(
+		sigChan,
+		os.Interrupt,
+		syscall.SIGTERM)
+	<-sigChan
+
+	sugar.Info("Shutting down...")
+	bot.Stop()
+	sugar.Info("Application shutdown complete")
 }

@@ -1,140 +1,176 @@
 package telegram
 
 import (
-	"os/signal"
-	"syscall"
-	"os"
-
-	"sync"
+	"fmt"
+	"github.com/anlukk/faceit-tracker/internal/core"
+	"github.com/anlukk/faceit-tracker/internal/telegram/commands"
+	"github.com/anlukk/faceit-tracker/internal/telegram/menu"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
-	"github.com/sirupsen/logrus"
-
-	"github.com/anlukk/faceit-tracker/internal/services"
+	"go.uber.org/zap"
+	"strings"
+	"sync"
 )
 
-type TelegramService struct {
-	Bot               *telego.Bot
-	Handlers 		  		*th.BotHandler
-	Logger            *logrus.Logger
-	Services          services.Services
+type Telegram struct {
+	bot         *telego.Bot
+	handlers    *th.BotHandler
+	commands    *commands.BotCommands
+	deps        *core.Dependencies
+	menuManager *menu.MenuManager
 
-	updates           chan telego.Update
-	stop              chan struct{}
-	done              chan struct{}
-	wg                *sync.WaitGroup
-
+	wg       sync.WaitGroup
+	stopChan chan struct{}
 }
 
-
-func NewTelegram(token string, logg *logrus.Logger) (*TelegramService, error) {
+func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 	bot, err := telego.NewBot(
-		token,
-		telego.WithDefaultDebugLogger(),
-		)
+		deps.Config.TelegramToken,
+		telego.WithLogger(deps.Logger),
+		telego.WithDefaultLogger(true, true),
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("telegram service init: %v", err)
 	}
 
 	updates, err := bot.UpdatesViaLongPolling(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updates error: %v", err)
 	}
-
 
 	botHandlers, err := th.NewBotHandler(bot, updates)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bot commands error: %v", err)
 	}
 
-	botHandlers.Group()
+	newMenu := menu.NewMenuManager(deps.Logger)
+	newCommands := commands.NewBotCommands(deps, newMenu)
 
-	done := make(chan struct{}, 1)
-	stop := make(chan struct{}, 1)
-
-	// botHandlers.Use(
-	// 	func(bot *telego.Bot, update telego.Update, next th.Handler) {
-	// 		go func() {
-	// 			defer func() {
-	// 				if r := recover(); r != nil {
-	// 					logg.Error(r)
-	// 				}
-	// 			}()
-	// 			next(bot, update)
-	// 		}()
-	// 	},
-	// )
-
-	// botServices = types.BotServices{
-	// 	Config: &cfg,
-	// }
-
-	TelegramService := &TelegramService{
-		Bot:         bot,
-		Handlers:    botHandlers,
-		Logger:      logg,
-		stop:        stop,
-		done:        done,
-		wg:          &sync.WaitGroup{},
+	service := &Telegram{
+		bot:         bot,
+		handlers:    botHandlers,
+		menuManager: newMenu,
+		commands:    newCommands,
+		deps:        deps,
+		stopChan:    make(chan struct{}),
 	}
 
-	return TelegramService, nil
+	botHandlers.Use(
+		func(bot *telego.Bot, update telego.Update, next th.Handler) {
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						service.deps.Logger.Error("panic in handler", zap.Any("panic", r))
+					}
+				}()
+				next(bot, update)
+			}()
+		})
+
+	err = service.registerCommands()
+	if err != nil {
+		return nil, fmt.Errorf("register commands: %v", err)
+	}
+
+	return service, nil
 }
 
-func (service *TelegramService) StartService() error {
-	service.handleStopSignal()
-
-	service.handlersInit()
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(
-		signals,
-		syscall.SIGINT,
-		syscall.SIGTERM,
+func (t *Telegram) registerCommands() error {
+	t.handlers.Handle(
+		t.commands.StartCommand.StartCommand,
+		th.CommandEqual("start"),
 	)
 
-	go func() {
-		service.wg.Add(1)
-		defer service.wg.Done()
+	t.handlers.Handle(
+		t.commands.StartCommand.HandleOptionsCallback,
+		th.CallbackDataPrefix("menu:"),
+	)
 
-		service.Handlers.Start()
-	} ()
+	t.handlers.Handle(
+		t.commands.StartCommand.HandleOptionsCallback,
+		th.CallbackDataEqual("subscriptions"),
+	)
 
-	service.Logger.Info("Telegram service started")
+	//t.handlers.Handle(
+	//	t.commands.StartCommand.HandleOptionsCallback,
+	//	th.CallbackDataEqual("settings"),
+	//)
 
-	select {
-	case sig := <-signals:
-		service.Logger.Infof("Received signal: %v", sig)
-		service.stop <- struct{}{}
-	case <-service.done:
-	}
+	t.handlers.Handle(
+		t.commands.StartCommand.HandleBackCallback,
+		th.CallbackDataEqual("back"),
+	)
 
-	service.wg.Wait()
-	service.Logger.Info("Telegram service stopped")
+	// Subscription
+	t.handlers.Handle(
+		t.commands.Subscription.HandleButtonAdd,
+		th.CallbackDataEqual("add_player"),
+	)
+	t.handlers.Handle(
+		t.commands.Subscription.HandleUserMessageFromAdd,
+		AnyMessageForAdd(),
+	)
 
-	if service.Handlers.IsRunning() {
-	service.
-		Logger.
-		Fatal("Telegram service not stopped")
-		return nil
-	}
+	t.handlers.Handle(
+		t.commands.Subscription.HandleButtonRemove,
+		th.CallbackDataEqual("remove_player"),
+	)
+	t.handlers.Handle(
+		t.commands.Subscription.HandleUserMessageFromRemove,
+		AnyMessageForRemove(),
+	)
+
+	t.handlers.Handle(
+		t.commands.Subscription.HandleButtonList,
+		th.CallbackDataEqual("list"),
+	)
+
+	// Search Player Command
+	t.handlers.Handle(
+		t.commands.SearchPlayerCommand.PromptPlayerSearch,
+		th.TextEqual("/searchplayer"),
+	)
+	t.handlers.Handle(
+		t.commands.SearchPlayerCommand.HandleUserMessage,
+		th.AnyMessage(),
+	)
 
 	return nil
 }
 
+func AnyMessageForAdd() th.Predicate {
+	return func(update telego.Update) bool {
+		return update.Message != nil &&
+			update.Message.ReplyToMessage != nil &&
+			strings.Contains(update.Message.ReplyToMessage.Text, "add")
+	}
+}
 
-func (service *TelegramService) handleStopSignal() {
+func AnyMessageForRemove() th.Predicate {
+	return func(update telego.Update) bool {
+		return update.Message != nil &&
+			update.Message.ReplyToMessage != nil &&
+			strings.Contains(update.Message.ReplyToMessage.Text, "delete")
+	}
+}
+
+func (t *Telegram) Start() error {
+	t.deps.Logger.Info("Telegram bot started")
+
+	t.wg.Add(1)
 	go func() {
-		<-service.stop
+		defer t.wg.Done()
 
-		service.Logger.Info("Stopping the bot...")
-
-		service.Bot.StopLongPolling()
-		service.Logger.Info("Long polling stopped")
-
-		service.Handlers.Stop()
-		service.Logger.Info("Handler stopped")
-
-		service.done <- struct{}{}
+		t.handlers.Start()
+		<-t.stopChan
+		t.handlers.Stop()
 	}()
+
+	return nil
+}
+
+func (t *Telegram) Stop() {
+	close(t.stopChan)
+	t.wg.Wait()
+	t.deps.Logger.Info("Telegram bot stopped")
 }

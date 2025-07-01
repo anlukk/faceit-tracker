@@ -3,14 +3,38 @@ description: "Hi! I will be your assistant in statistics from Faceit. Please, ch
 about: "Faceit Stats Bot is your go-to companion for tracking and analyzing your gaming performance on Faceit. Simply enter your username, and the bot will provide detailed statistics, including match history, win/loss ratios, Elo rating, and other key performance indicators. Stay up to date with your progress and improve your gameplay with personalized insights delivered straight to your Telegram chat."
 
 start_tracking_message: "Enter your Faceit username: "
-
 login_url: "https://redirect.me"
+subscriptions_command_message: "Here you can add, delete or view the list of players you are subscribed to:"
+nickname_for_subscription: "Enter the nickname of the player you want to add: "
+nickname_for_unsubscription: "Enter the nickname of the player you want to delete: "
+success_subscription: "Player added successfully!"
+success_unsubscription: "Player deleted successfully!"
 
 start_command:
   inline_keyboard:
     keyboard_row_1:
-      options: "Options ❕"
+      options: "Subscriptions 🔔"
     keyboard_row_2:
       settings: "Settings ⚙️"
     keyboard_row_4:
       github: "GitHub"
+
+subscriptions_command:
+  inline_keyboard:
+    keyboard_row_1:
+      add_player: "Add player ➕"
+    keyboard_row_2:
+      remove_player: "Delete player ➖"
+    keyboard_row_4:
+      list: "My subscriptions 📋"
+    keyboard_row_5:
+      back: "⬅️ Back"
+
+settings_command:
+  inline_keyboard:
+    keyboard_row_1:
+      language: "Language 🌐"
+    keyboard_row_2:
+      notifications: "Notifications 🔔"
+    keyboard_row_3:
+      back: "Back ⬅️"

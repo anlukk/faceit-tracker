@@ -1,13 +1,12 @@
 package utils
 
 import (
-	"github.com/mconnat/go-faceit/pkg/models"
 	"fmt"
+	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 )
 
-func FormatResponseMessage(response *models.Player) string {
+func FormatResponseMessage(response *faceit.Player) string {
 	gamesStr := ""
-
 	for game, gameInfo := range response.Games {
 		gamesStr += fmt.Sprintf(
 			"Game: %s, FaceitElo: %d, SkillLevel: %d\n",
@@ -16,9 +15,9 @@ func FormatResponseMessage(response *models.Player) string {
 	}
 
 	return fmt.Sprintf(
-		"Nickname: %s\n" +
-			"Country: %s\n" +
-			"Games: %s\n" +
+		"Nickname: %s\n"+
+			"Country: %s\n"+
+			"Games: %s\n"+
 			"Steam nickname: %s\n",
 		response.Nickname,
 		response.Country,

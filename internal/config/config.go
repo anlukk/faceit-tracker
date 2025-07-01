@@ -1,56 +1,44 @@
 package config
 
 import (
-
-	"os"
-	"path/filepath"
-
-	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 	"fmt"
-	"log"
+	"github.com/caarlos0/env/v8"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	TelegramBotAdmins []string  `required:"false"   envconfig:"TELEGRAM_BOT_ADMINS"`
-	TelegramAPIURL    string   	`required:"false"   envconfig:"TELEGRAM_API_URL"`
-	TelegramToken     string		`required:"true"   envconfig:"TELEGRAM_TOKEN"`
-	DatabaseURL       string   	`required:"false"   envconfig:"DATABASE_URL"`
-	FaceitAPIToken    string 		`required:"false"   envconfig:"FACEIT_API_TOKEN"`
-	FaceitAPISecret   string		`required:"false"   envconfig:"FACEIT_API_SECRET"`
-	FaceitAPIURL      string		`required:"false"   envconfig:"FACEIT_API_URL"`
+	TelegramBotAdmins []string `env:"TELEGRAM_BOT_ADMINS"`
+	TelegramAPIURL    string   `env:"TELEGRAM_API_URL"`
+	TelegramToken     string   `env:"TELEGRAM_TOKEN"`
+	DatabaseURL       string   `env:"DATABASE_URL"`
+
+	// Faceit API
+	FaceitAPIToken string `env:"FACEIT_API_TOKEN"`
+	FaceitAPIURL   string `env:"FACEIT_API_URL"`
+
+	// Logger
+	LoggerLevel string `env:"LOGGER_LEVEL"`
+
+	// Database
+	DBHost     string `env:"DB_HOST"`
+	DBPort     string `env:"DB_PORT"`
+	DBUser     string `env:"DB_USER"`
+	DBPassword string `env:"DB_PASSWORD"`
+	DBName     string `env:"DB_NAME"`
+	DBSSLMode  string `env:"SSL_MODE"`
+
+	MaxIdleConns    int `env:"MAX_IDLE_CONNS"`
+	MaxOpenConns    int `env:"MAX_OPEN_CONNS"`
+	ConnMaxLifetime int `env:"CONN_MAX_LIFETIME"`
 }
 
 func NewConfig() (*Config, error) {
-	var (
-		newConfig Config
-	)
+	_ = godotenv.Load()
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
+	var cfg Config
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 
-  envPath := filepath.Join(filepath.Dir(wd), ".env")
-
-	_, err = os.Stat(envPath)
-	if err != nil {
-			if os.IsNotExist(err) {
-					log.Printf("Warning: .env file not found at %s", envPath)
-			} else {
-					return nil, err
-			}
-	}
-
-	err = godotenv.Load(envPath)
-	if err != nil {
-			return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
-
-	configErr := envconfig.Process("", &newConfig)
-	if configErr != nil {
-		return nil, fmt.Errorf("config error: %w", configErr)
-	}
-
-	return &newConfig, nil
+	return &cfg, nil
 }
