@@ -64,13 +64,11 @@ func main() {
 
 	bot, err := telegram.NewTelegram(dependencies)
 	if err != nil {
-		sugar.Fatalw("failed to initialize telegram bot",
-			"error", err)
+		sugar.Fatalw("failed to initialize telegram bot", "error", err)
 	}
 
 	if err := bot.Start(); err != nil {
-		sugar.Fatalw("failed to start bot",
-			"error", err)
+		sugar.Fatalw("failed to start bot", "error", err)
 	}
 
 	sigChan := make(chan os.Signal, 1)

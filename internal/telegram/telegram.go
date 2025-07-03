@@ -104,31 +104,30 @@ func (t *Telegram) registerCommands() error {
 	)
 
 	t.handlers.Handle(
-		t.commands.StartCommand.HandleSettingsMenuCallback,
+		t.commands.StartCommand.HandleNotificationToggleCallback,
 		th.CallbackDataEqual("notification"),
 	)
 
-	// Subscription
 	t.handlers.Handle(
-		t.commands.Subscription.HandleButtonAdd,
+		t.commands.Subscription.HandleSubscribeButton,
 		th.CallbackDataEqual("add_player"),
 	)
 	t.handlers.Handle(
-		t.commands.Subscription.HandleUserMessageFromAdd,
-		commands.AnyMessageForAdd(),
+		t.commands.Subscription.HandleSubscriptionUsernameReply,
+		commands.IsSubscriptionReplyMessage(),
 	)
 
 	t.handlers.Handle(
-		t.commands.Subscription.HandleButtonRemove,
+		t.commands.Subscription.HandleUnsubscribeButton,
 		th.CallbackDataEqual("remove_player"),
 	)
 	t.handlers.Handle(
-		t.commands.Subscription.HandleUserMessageFromRemove,
-		commands.AnyMessageForRemove(),
+		t.commands.Subscription.HandleUnsubscriptionUsernameReply,
+		commands.IsUnsubscriptionReplyMessage(),
 	)
 
 	t.handlers.Handle(
-		t.commands.Subscription.HandleButtonList,
+		t.commands.Subscription.HandleSubscriptionsListButton,
 		th.CallbackDataEqual("list"),
 	)
 

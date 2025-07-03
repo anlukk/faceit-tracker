@@ -1,4 +1,4 @@
-package notification
+package match
 
 import (
 	"context"
@@ -10,19 +10,12 @@ import (
 
 var ErrEmptyUsername = errors.New("empty username")
 
-type Notifications interface {
-	GetOngoingMatchInfo(ctx context.Context, username string) (*OngoingMatchInfo, error)
-	GetFinishMatchResult(ctx context.Context, username string) (*FinishMatchResult, error)
-}
-
 type Service struct {
-	faceitClient faceit.Faceit
+	client faceit.FaceitClient
 }
 
-func NewService(faceitClient faceit.Faceit) *Service {
-	return &Service{
-		faceitClient: faceitClient,
-	}
+func NewService(client faceit.FaceitClient) *Service {
+	return &Service{client: client}
 }
 
 func (s *Service) GetOngoingMatchInfo(
@@ -32,7 +25,7 @@ func (s *Service) GetOngoingMatchInfo(
 		return nil, ErrEmptyUsername
 	}
 
-	lastMatch, err := s.faceitClient.GetLastMatch(ctx, username)
+	lastMatch, err := s.client.GetLastMatch(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("get last match: %w", err)
 	}
@@ -62,7 +55,7 @@ func (s *Service) GetFinishMatchResult(
 		return nil, ErrEmptyUsername
 	}
 
-	lastMatch, err := s.faceitClient.GetLastMatch(ctx, username)
+	lastMatch, err := s.client.GetLastMatch(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("get last match: %w", err)
 	}
@@ -73,7 +66,7 @@ func (s *Service) GetFinishMatchResult(
 		return nil, fmt.Errorf("match not finished or missing score")
 	}
 
-	playerID, err := s.faceitClient.GetPlayerIDByUsername(ctx, username)
+	playerID, err := s.client.GetPlayerIDByUsername(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("get player id: %w", err)
 	}

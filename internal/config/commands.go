@@ -18,6 +18,7 @@ type BotMessages struct {
 	FailedSubs             string `yaml:"failed_subscription"`
 	FailedToGetSubs        string `yaml:"failed_to_get_subscriptions"`
 	SettingsCommandMessage string `yaml:"settings_command_message"`
+	NoSubscriptions        string `yaml:"no_subscriptions"`
 
 	StartCommand struct {
 		InlineKeyboard struct {

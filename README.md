@@ -1,3 +1,3 @@
 # faceit-tracker
 
-## Telegram Bot for tracking Faceit stats.
+## Telegram Bot for tracking FaceitClient stats.

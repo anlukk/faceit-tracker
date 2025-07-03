@@ -23,10 +23,8 @@ func NewStart(deps *core.Dependencies, menu *menu.MenuManager) *Start {
 
 func (s *Start) StartCommand(bot *telego.Bot, update telego.Update) {
 	chatID := update.Message.Chat.ID
-	keyboard := BuildMainKeyboard(s.deps)
-
 	msg, err := bot.SendMessage(tu.Message(tu.ID(chatID), s.deps.Messages.Description).
-		WithReplyMarkup(keyboard).
+		WithReplyMarkup(BuildMainKeyboard(s.deps)).
 		WithParseMode(telego.ModeHTML))
 	if err != nil {
 		s.deps.Logger.Errorw("bot error", "error", err)
@@ -80,8 +78,52 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	msg := update.CallbackQuery.Message.GetMessageID()
-	chatID := update.CallbackQuery.Message.GetChat().ID
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
+		return
+	}
+
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
+
+	current, err := s.deps.Services.Settings.GetNotificationsEnabled(ctx, chatID)
+	if err != nil {
+		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
+		return
+	}
+
+	s.menu.SetActive(chatID, "options", messageID)
+
+	_, err = bot.EditMessageText(&telego.EditMessageTextParams{
+		ChatID:      tu.ID(chatID),
+		MessageID:   messageID,
+		Text:        s.deps.Messages.SettingsCommandMessage,
+		ReplyMarkup: BuildSettingsKeyboard(s.deps, current),
+		ParseMode:   telego.ModeHTML,
+	})
+	if err != nil {
+		s.deps.Logger.Errorw("failed to edit message", "error", err)
+	}
+
+	err = bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID))
+	if err != nil {
+		s.deps.Logger.Errorw("bot error", "error", err)
+	}
+}
+
+func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.Update) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
+		return
+	}
+
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
 
 	current, err := s.deps.Services.Settings.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
@@ -90,16 +132,17 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 	}
 
 	newState := !current
-	if err := s.deps.Services.Settings.SetNotificationsEnabled(ctx, chatID, newState); err != nil {
+	err = s.deps.Services.Settings.SetNotificationsEnabled(ctx, chatID, newState)
+	if err != nil {
 		s.deps.Logger.Errorw("failed to set notifications status", "error", err)
 		return
 	}
 
-	s.menu.SetActive(chatID, "options", msg)
+	s.menu.SetActive(chatID, "options", messageID)
 
 	_, err = bot.EditMessageText(&telego.EditMessageTextParams{
 		ChatID:      tu.ID(chatID),
-		MessageID:   msg,
+		MessageID:   messageID,
 		Text:        s.deps.Messages.SettingsCommandMessage,
 		ReplyMarkup: BuildSettingsKeyboard(s.deps, newState),
 		ParseMode:   telego.ModeHTML,
@@ -115,8 +158,14 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 }
 
 func (s *Start) HandleBackCallback(bot *telego.Bot, update telego.Update) {
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	messageID := update.CallbackQuery.Message.GetMessageID()
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
+		return
+	}
+
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
 
 	_, err := bot.EditMessageText(&telego.EditMessageTextParams{
 		ChatID:      tu.ID(chatID),

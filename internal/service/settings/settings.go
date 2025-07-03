@@ -14,6 +14,7 @@ var (
 type Settings interface {
 	GetNotificationsEnabled(ctx context.Context, chatID int64) (bool, error)
 	SetNotificationsEnabled(ctx context.Context, chatID int64, enabled bool) error
+	GetAllWithNotificationsEnabled(ctx context.Context) ([]int64, error)
 	GetLanguage(ctx context.Context, chatID int64) string
 	SetLanguage(ctx context.Context, chatID int64, language string) error
 }
@@ -45,6 +46,10 @@ func (s *Service) SetNotificationsEnabled(ctx context.Context, chatID int64, ena
 	}
 
 	return nil
+}
+
+func (s *Service) GetAllWithNotificationsEnabled(ctx context.Context) ([]int64, error) {
+	return s.repo.GetAllWithNotificationsEnabled(ctx)
 }
 
 func (s *Service) GetLanguage(ctx context.Context, chatID int64) string {

@@ -1,4 +1,4 @@
-package notification
+package match
 
 type Voting struct {
 	Map `json:"map"`

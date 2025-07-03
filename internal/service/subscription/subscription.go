@@ -93,9 +93,5 @@ func (s *Service) GetSubscribers(ctx context.Context, chatID int64) ([]models.Su
 		return nil, fmt.Errorf("failed to get subscribers: %w", err)
 	}
 
-	if len(subs) == 0 {
-		return nil, ErrNoSubscribers
-	}
-
 	return subs, nil
 }

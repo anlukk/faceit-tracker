@@ -13,38 +13,31 @@ import (
 )
 
 type Subscription struct {
-	deps                       *core.Dependencies
-	waitingForUsernameToAdd    map[telego.ChatID]bool
-	waitingForUsernameToRemove map[telego.ChatID]bool
+	deps *core.Dependencies
 }
 
 func NewSubscription(deps *core.Dependencies) *Subscription {
 	return &Subscription{
-		deps:                       deps,
-		waitingForUsernameToAdd:    make(map[telego.ChatID]bool),
-		waitingForUsernameToRemove: make(map[telego.ChatID]bool),
+		deps: deps,
 	}
 }
 
-func (s *Subscription) HandleButtonAdd(bot *telego.Bot, update telego.Update) {
-	if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
-		s.deps.Logger.Errorw("invalid callback query", "update", update)
+func (s *Subscription) HandleSubscribeButton(bot *telego.Bot, update telego.Update) {
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
 		return
 	}
 
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	messageID := update.CallbackQuery.Message.GetMessageID()
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
 
 	s.deps.Logger.Debugw("handle button add",
 		"chat_id", chatID,
 		"message_id", messageID,
 		"callback_data", update.CallbackQuery.Data)
 
-	userId := tu.ID(chatID)
-	s.waitingForUsernameToAdd[userId] = true
-	s.waitingForUsernameToRemove[userId] = false
-
-	msg, err := bot.SendMessage(tu.Message(userId, s.deps.Messages.NicknameForSubs).
+	msg, err := bot.SendMessage(tu.Message(tu.ID(chatID), s.deps.Messages.NicknameForSubs).
 		WithReplyMarkup(tu.ForceReply()))
 	if err != nil {
 		s.deps.Logger.Errorw("failed to send message", "error", err)
@@ -52,7 +45,7 @@ func (s *Subscription) HandleButtonAdd(bot *telego.Bot, update telego.Update) {
 	}
 
 	s.deps.Logger.Debugw("sent message with force reply",
-		"message_id", msg.MessageID)
+		"message_id", messageID)
 
 	if err := bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
@@ -61,24 +54,11 @@ func (s *Subscription) HandleButtonAdd(bot *telego.Bot, update telego.Update) {
 	}
 }
 
-func (s *Subscription) HandleUserMessageFromAdd(bot *telego.Bot, update telego.Update) {
-	if update.Message == nil || update.Message.From == nil {
-		s.deps.Logger.Errorw("nil message or sender", "update", update)
-		return
-	}
+func (s *Subscription) HandleSubscriptionUsernameReply(bot *telego.Bot, update telego.Update) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	userId := tu.ID(update.Message.From.ID)
-	if !s.waitingForUsernameToAdd[userId] {
-		return
-	}
-
-	if update.Message.ReplyToMessage == nil {
-		s.deps.Logger.Debugw("message is not a reply", "update", update)
-		return
-	}
-
-	s.waitingForUsernameToAdd[userId] = false
-
 	userMessage := strings.TrimSpace(update.Message.Text)
 	if userMessage == "" {
 		_, err := bot.SendMessage(tu.Message(userId, "Please enter a valid username.").
@@ -89,17 +69,11 @@ func (s *Subscription) HandleUserMessageFromAdd(bot *telego.Bot, update telego.U
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	playerId, err := s.deps.
-		Faceit.
-		GetPlayerIDByUsername(ctx, userMessage)
+	playerId, err := s.deps.Faceit.GetPlayerIDByUsername(ctx, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
-		_, sendErr := bot.SendMessage(
-			tu.Message(userId, "Error fetching data from FACEIT API.").
-				WithParseMode(telego.ModeHTML),
+		_, sendErr := bot.SendMessage(tu.Message(userId, "Error fetching data from FACEIT API.").
+			WithParseMode(telego.ModeHTML),
 		)
 		if sendErr != nil {
 			s.deps.Logger.Errorw("send message error", "error", sendErr)
@@ -111,10 +85,11 @@ func (s *Subscription) HandleUserMessageFromAdd(bot *telego.Bot, update telego.U
 	s.deps.Logger.Infof("Player ID: %s", playerId)
 
 	chatID := update.Message.Chat.ID
-	err = s.deps.Services.Subscriptions.Subscribe(ctx, chatID, playerId, userMessage)
+	err = s.deps.Services.Subscription.Subscribe(ctx, chatID, playerId, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to subscribe", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(userId, fmt.Sprintf(s.deps.Messages.FailedSubs+" "+err.Error())).
+		_, sendErr := bot.SendMessage(tu.Message(userId,
+			fmt.Sprintf(s.deps.Messages.FailedSubs+" "+err.Error())).
 			WithParseMode(telego.ModeHTML),
 		)
 		if sendErr != nil {
@@ -130,7 +105,7 @@ func (s *Subscription) HandleUserMessageFromAdd(bot *telego.Bot, update telego.U
 	}
 }
 
-func AnyMessageForAdd() th.Predicate {
+func IsSubscriptionReplyMessage() th.Predicate {
 	return func(update telego.Update) bool {
 		return update.Message != nil &&
 			update.Message.ReplyToMessage != nil &&
@@ -138,23 +113,27 @@ func AnyMessageForAdd() th.Predicate {
 	}
 }
 
-func (s *Subscription) HandleButtonRemove(bot *telego.Bot, update telego.Update) {
+func (s *Subscription) HandleUnsubscribeButton(bot *telego.Bot, update telego.Update) {
 	if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
 		s.deps.Logger.Errorw("invalid callback query", "update", update)
 		return
 	}
 
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	messageID := update.CallbackQuery.Message.GetMessageID()
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
+		return
+	}
+
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
+
 	s.deps.Logger.Debugw(
 		"handle button remove",
 		"chat_id", chatID,
 		"message_id", messageID,
 	)
 	userId := tu.ID(chatID)
-
-	s.waitingForUsernameToRemove[userId] = true
-	s.waitingForUsernameToAdd[userId] = false
 
 	msg, err := bot.SendMessage(tu.Message(userId, s.deps.Messages.NicknameForUnsubs).
 		WithReplyMarkup(tu.ForceReply()))
@@ -163,7 +142,7 @@ func (s *Subscription) HandleButtonRemove(bot *telego.Bot, update telego.Update)
 		return
 	}
 
-	s.deps.Logger.Debugw("sent message with force reply", "message_id", msg.MessageID)
+	s.deps.Logger.Debugw("sent message with force reply", "message_id", messageID)
 
 	if err := bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
@@ -172,18 +151,9 @@ func (s *Subscription) HandleButtonRemove(bot *telego.Bot, update telego.Update)
 	}
 }
 
-func (s *Subscription) HandleUserMessageFromRemove(bot *telego.Bot, update telego.Update) {
-	if update.Message == nil || update.Message.From == nil {
-		s.deps.Logger.Errorw("nil message or sender", "update", update)
-		return
-	}
-
+func (s *Subscription) HandleUnsubscriptionUsernameReply(bot *telego.Bot, update telego.Update) {
 	chatID := update.Message.Chat.ID
 	userId := tu.ID(chatID)
-	if !s.waitingForUsernameToRemove[userId] {
-		return
-	}
-	s.waitingForUsernameToRemove[userId] = false
 
 	userMessage := strings.TrimSpace(update.Message.Text)
 	if userMessage == "" {
@@ -202,7 +172,7 @@ func (s *Subscription) HandleUserMessageFromRemove(bot *telego.Bot, update teleg
 		s.deps.Logger.Errorw("failed to get user", "error", err)
 	}
 
-	subscribed, err := s.deps.Services.Subscriptions.IsSubscribed(ctx, chatID, playerId)
+	subscribed, err := s.deps.Services.Subscription.IsSubscribed(ctx, chatID, playerId)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to check subscription", "error", err)
 		_, sendErr := bot.SendMessage(
@@ -215,14 +185,15 @@ func (s *Subscription) HandleUserMessageFromRemove(bot *telego.Bot, update teleg
 	}
 
 	if !subscribed {
-		_, sendErr := bot.SendMessage(tu.Message(userId, fmt.Sprintf(s.deps.Messages.NotSubscribed, userMessage)))
+		_, sendErr := bot.SendMessage(tu.Message(userId,
+			fmt.Sprintf(s.deps.Messages.NotSubscribed, userMessage)))
 		if sendErr != nil {
 			s.deps.Logger.Errorw("send message error", "error", sendErr)
 		}
 		return
 	}
 
-	err = s.deps.Services.Subscriptions.Unsubscribe(ctx, chatID, playerId)
+	err = s.deps.Services.Subscription.Unsubscribe(ctx, chatID, playerId)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to unsubscribe", "error", err)
 		_, sendErr := bot.SendMessage(
@@ -240,9 +211,15 @@ func (s *Subscription) HandleUserMessageFromRemove(bot *telego.Bot, update teleg
 		s.deps.Logger.Errorw("bot error", "error", botErr)
 	}
 }
+func IsUnsubscriptionReplyMessage() th.Predicate {
+	return func(update telego.Update) bool {
+		return update.Message != nil &&
+			update.Message.ReplyToMessage != nil &&
+			strings.Contains(update.Message.ReplyToMessage.Text, "delete")
+	}
+}
 
-// todo:
-func (s *Subscription) HandleButtonList(bot *telego.Bot, update telego.Update) {
+func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update telego.Update) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -255,34 +232,47 @@ func (s *Subscription) HandleButtonList(bot *telego.Bot, update telego.Update) {
 		return
 	}
 
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	messageID := update.CallbackQuery.Message.GetMessageID()
+	msg := update.CallbackQuery.Message
+	if msg == nil {
+		s.deps.Logger.Errorw("message is nil")
+		return
+	}
+
+	chatID := msg.GetChat().ID
+	messageID := msg.GetMessageID()
+
 	s.deps.Logger.Debugw(
 		"handle button list",
 		"chat_id", chatID,
 		"message_id", messageID,
 	)
 
-	subs, err := s.deps.Services.Subscriptions.GetSubscribers(ctx, chatID)
+	subs, err := s.deps.Services.Subscription.GetSubscribers(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get subscriber", "error", err)
-		_, err = bot.SendMessage(tu.Message(tu.ID(chatID), fmt.Sprintf(s.deps.Messages.NotSubscribed+err.Error())).
+		_, err = bot.SendMessage(tu.Message(tu.ID(chatID),
+			fmt.Sprintf(s.deps.Messages.NotSubscribed+err.Error())).
 			WithParseMode(telego.ModeHTML))
 		if err != nil {
 			s.deps.Logger.Errorw("send message error", "error", err)
 		}
 	}
 
-	_, err = bot.SendMessage(tu.Message(tu.ID(chatID), subsOutput(subs)).
+	_, err = bot.SendMessage(tu.Message(tu.ID(chatID), s.formatSubscriptionsList(subs)).
 		WithParseMode(telego.ModeHTML))
 	if err != nil {
 		s.deps.Logger.Errorw("failed to send message", "error", err)
 	}
+
+	if err := bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID)); err != nil {
+		s.deps.Logger.Errorw("failed to answer callback", "error", err)
+		return
+	}
 }
 
-func subsOutput(subs []models.Subscription) string {
+func (s *Subscription) formatSubscriptionsList(subs []models.Subscription) string {
 	if len(subs) == 0 {
-		return "You have no subscription yet."
+		return s.deps.Messages.NoSubscriptions
 	}
 
 	sb := "Your subscription:\n"
@@ -291,12 +281,4 @@ func subsOutput(subs []models.Subscription) string {
 	}
 
 	return sb
-}
-
-func AnyMessageForRemove() th.Predicate {
-	return func(update telego.Update) bool {
-		return update.Message != nil &&
-			update.Message.ReplyToMessage != nil &&
-			strings.Contains(update.Message.ReplyToMessage.Text, "delete")
-	}
 }

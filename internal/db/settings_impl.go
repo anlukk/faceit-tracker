@@ -16,7 +16,9 @@ func NewSettngsDBImpl(db *gorm.DB) *SettingsDBImpl {
 	return &SettingsDBImpl{db: db}
 }
 
-func (s *SettingsDBImpl) GetNotificationsEnabled(ctx context.Context, chatID int64) (bool, error) {
+func (s *SettingsDBImpl) GetNotificationsEnabled(
+	ctx context.Context,
+	chatID int64) (bool, error) {
 	var setting models.UserSettings
 	err := s.db.WithContext(ctx).
 		Where("chat_id = ?", chatID).
@@ -80,6 +82,25 @@ func (s *SettingsDBImpl) SetNotificationsEnabled(
 	}
 
 	return err
+}
+
+func (s *SettingsDBImpl) GetAllWithNotificationsEnabled(ctx context.Context) ([]int64, error) {
+	var settings []models.UserSettings
+	err := s.db.
+		WithContext(ctx).
+		Where("notifications_enabled = ?", true).
+		Find(&settings).
+		Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all with notifications enabled: %w", err)
+	}
+
+	var chatIDs []int64
+	for _, setting := range settings {
+		chatIDs = append(chatIDs, setting.ChatID)
+	}
+
+	return chatIDs, nil
 }
 
 func (s *SettingsDBImpl) GetLanguage(
