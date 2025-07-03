@@ -5,7 +5,7 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/db/models"
 )
 
-type SubDB interface {
+type SubscriptionDB interface {
 	Subscribe(ctx context.Context, chatID int64, playerID, nickname string) error
 	Unsubscribe(ctx context.Context, chatID int64, playerID string) error
 

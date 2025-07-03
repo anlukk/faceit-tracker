@@ -12,7 +12,7 @@ type Dependencies struct {
 	Config   *config.Config
 	Messages *config.BotMessages
 	Logger   *zap.SugaredLogger
-	Faceit   faceit.Client
+	Faceit   faceit.Faceit
 	Services *service.Services
 	Db       *gorm.DB
 }

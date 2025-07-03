@@ -6,14 +6,18 @@ import (
 )
 
 type BotMessages struct {
-	Description          string `yaml:"description"`
-	About                string `yaml:"about"`
-	StartTrackingCommand string `yaml:"start_tracking_message"`
-	SubsCommandMessage   string `yaml:"subscriptions_command_message"`
-	NicknameForSubs      string `yaml:"nickname_for_subscription"`
-	NicknameForUnsubs    string `yaml:"nickname_for_unsubscription"`
-	SuccessSubs          string `yaml:"success_subscription"`
-	SuccessUnsubs        string `yaml:"success_unsubscription"`
+	Description            string `yaml:"description"`
+	About                  string `yaml:"about"`
+	StartTrackingCommand   string `yaml:"start_tracking_message"`
+	SubsCommandMessage     string `yaml:"subscriptions_command_message"`
+	NicknameForSubs        string `yaml:"nickname_for_subscription"`
+	NicknameForUnsubs      string `yaml:"nickname_for_unsubscription"`
+	SuccessSubs            string `yaml:"success_subscription"`
+	SuccessUnsubs          string `yaml:"success_unsubscription"`
+	NotSubscribed          string `yaml:"you_are_not_subscribed"`
+	FailedSubs             string `yaml:"failed_subscription"`
+	FailedToGetSubs        string `yaml:"failed_to_get_subscriptions"`
+	SettingsCommandMessage string `yaml:"settings_command_message"`
 
 	StartCommand struct {
 		InlineKeyboard struct {
@@ -54,11 +58,11 @@ type BotMessages struct {
 	SettingsCommand struct {
 		InlineKeyboard struct {
 			KeyboardRow1 struct {
-				Notifications string `yaml:"language"`
+				Language string `yaml:"language"`
 			} `yaml:"keyboard_row_1"`
 
 			KeyboardRow2 struct {
-				Notifications string `yaml:"notifications"`
+				Notifications string `yaml:"notification"`
 			} `yaml:"keyboard_row_2"`
 
 			KeyboardRow3 struct {

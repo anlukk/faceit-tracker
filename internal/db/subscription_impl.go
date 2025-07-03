@@ -8,17 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type SubDBImpl struct {
+type SubscriptionDBImpl struct {
 	db *gorm.DB
 }
 
-func NewSubDBImpl(db *gorm.DB) *SubDBImpl {
-	return &SubDBImpl{
-		db: db,
-	}
+func NewSubscriptionDBImpl(db *gorm.DB) *SubscriptionDBImpl {
+	return &SubscriptionDBImpl{db: db}
 }
 
-func (s *SubDBImpl) Subscribe(ctx context.Context, chatID int64, playerID, nickname string) error {
+func (s *SubscriptionDBImpl) Subscribe(ctx context.Context, chatID int64, playerID, nickname string) error {
 	var count int64
 
 	err := s.db.
@@ -28,7 +26,7 @@ func (s *SubDBImpl) Subscribe(ctx context.Context, chatID int64, playerID, nickn
 		Count(&count).
 		Error
 	if err != nil {
-		return fmt.Errorf("SubDBImpl.Subscribe: %w", err)
+		return fmt.Errorf("SubscriptionDBImpl.Subscribe: %w", err)
 	}
 
 	if count > 0 {
@@ -44,8 +42,9 @@ func (s *SubDBImpl) Subscribe(ctx context.Context, chatID int64, playerID, nickn
 	return s.db.WithContext(ctx).Create(&sub).Error
 }
 
-func (s *SubDBImpl) Unsubscribe(ctx context.Context, chatID int64, playerID string) error {
-	result := s.db.WithContext(ctx).
+func (s *SubscriptionDBImpl) Unsubscribe(ctx context.Context, chatID int64, playerID string) error {
+	result := s.db.
+		WithContext(ctx).
 		Where("chat_id = ? AND player_id = ?", chatID, playerID).
 		Delete(&models.Subscription{})
 
@@ -60,26 +59,29 @@ func (s *SubDBImpl) Unsubscribe(ctx context.Context, chatID int64, playerID stri
 	return nil
 }
 
-func (s *SubDBImpl) IsSubscribed(ctx context.Context, chatID int64, playerID string) (bool, error) {
+func (s *SubscriptionDBImpl) IsSubscribed(ctx context.Context, chatID int64, playerID string) (bool, error) {
 	var count int64
 
-	err := s.db.WithContext(ctx).
+	err := s.db.
+		WithContext(ctx).
 		Model(&models.Subscription{}).
 		Where("chat_id = ? AND player_id = ?", chatID, playerID).
 		Count(&count).
 		Error
 	if err != nil {
-		return false, fmt.Errorf("SubDBImpl.IsSubscribed: %w", err)
+		return false, fmt.Errorf("SubscriptionDBImpl.IsSubscribed: %w", err)
 	}
 
 	return count > 0, nil
 }
 
-func (s *SubDBImpl) GetSubscribers(ctx context.Context, chatID int64) ([]models.Subscription, error) {
+func (s *SubscriptionDBImpl) GetSubscribers(ctx context.Context, chatID int64) ([]models.Subscription, error) {
 	var subs []models.Subscription
-	err := s.db.WithContext(ctx).
+	err := s.db.
+		WithContext(ctx).
 		Where("chat_id = ?", chatID).
-		Find(&subs).Error
+		Find(&subs).
+		Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscribers: %w", err)

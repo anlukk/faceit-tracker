@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"context"
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/telegram/menu"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
+	"time"
 )
 
 type Start struct {
@@ -22,6 +24,7 @@ func NewStart(deps *core.Dependencies, menu *menu.MenuManager) *Start {
 func (s *Start) StartCommand(bot *telego.Bot, update telego.Update) {
 	chatID := update.Message.Chat.ID
 	keyboard := BuildMainKeyboard(s.deps)
+
 	msg, err := bot.SendMessage(tu.Message(tu.ID(chatID), s.deps.Messages.Description).
 		WithReplyMarkup(keyboard).
 		WithParseMode(telego.ModeHTML))
@@ -30,15 +33,10 @@ func (s *Start) StartCommand(bot *telego.Bot, update telego.Update) {
 		return
 	}
 
-	if msg.MessageID == 0 {
-		s.deps.Logger.Errorw("message id is 0", "chat_id", chatID)
-		return
-	}
-
 	s.menu.SetActive(chatID, "main", msg.MessageID)
 }
 
-func (s *Start) HandleOptionsCallback(bot *telego.Bot, update telego.Update) {
+func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Update) {
 	if update.CallbackQuery == nil {
 		s.deps.Logger.Errorw("callback query is nil")
 		return
@@ -53,7 +51,11 @@ func (s *Start) HandleOptionsCallback(bot *telego.Bot, update telego.Update) {
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
 
-	s.deps.Logger.Debugw("handle options callback", "chat_id", chatID, "message_id", messageID)
+	s.deps.Logger.Debugw(
+		"handle options callback",
+		"chat_id", chatID,
+		"message_id", messageID,
+	)
 
 	s.menu.SetActive(chatID, "options", messageID)
 
@@ -64,7 +66,6 @@ func (s *Start) HandleOptionsCallback(bot *telego.Bot, update telego.Update) {
 		ReplyMarkup: BuildSubscriptionKeyboard(s.deps),
 		ParseMode:   telego.ModeHTML,
 	})
-
 	if err != nil {
 		s.deps.Logger.Errorw("bot error", "error", err)
 	}
@@ -75,35 +76,36 @@ func (s *Start) HandleOptionsCallback(bot *telego.Bot, update telego.Update) {
 	}
 }
 
-func (s *Start) HandleSettingsCallback(bot *telego.Bot, update telego.Update) {
-	if update.CallbackQuery == nil {
-		s.deps.Logger.Errorw("callback query is nil")
+func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	msg := update.CallbackQuery.Message.GetMessageID()
+	chatID := update.CallbackQuery.Message.GetChat().ID
+
+	current, err := s.deps.Services.Settings.GetNotificationsEnabled(ctx, chatID)
+	if err != nil {
+		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
 		return
 	}
 
-	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
+	newState := !current
+	if err := s.deps.Services.Settings.SetNotificationsEnabled(ctx, chatID, newState); err != nil {
+		s.deps.Logger.Errorw("failed to set notifications status", "error", err)
 		return
 	}
 
-	chatID := msg.GetChat().ID
-	messageID := msg.GetMessageID()
+	s.menu.SetActive(chatID, "options", msg)
 
-	s.deps.Logger.Debugw("handle settings callback", "chat_id", chatID, "message_id", messageID)
-
-	s.menu.SetActive(chatID, "options", messageID)
-
-	_, err := bot.EditMessageText(&telego.EditMessageTextParams{
+	_, err = bot.EditMessageText(&telego.EditMessageTextParams{
 		ChatID:      tu.ID(chatID),
-		MessageID:   messageID,
-		Text:        "Settings Menu",
-		ReplyMarkup: BuildSettingsKeyboard(s.deps),
+		MessageID:   msg,
+		Text:        s.deps.Messages.SettingsCommandMessage,
+		ReplyMarkup: BuildSettingsKeyboard(s.deps, newState),
 		ParseMode:   telego.ModeHTML,
 	})
-
 	if err != nil {
-		s.deps.Logger.Errorw("bot error", "error", err)
+		s.deps.Logger.Errorw("failed to edit message", "error", err)
 	}
 
 	err = bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID))
@@ -113,11 +115,6 @@ func (s *Start) HandleSettingsCallback(bot *telego.Bot, update telego.Update) {
 }
 
 func (s *Start) HandleBackCallback(bot *telego.Bot, update telego.Update) {
-	if update.CallbackQuery == nil {
-		s.deps.Logger.Errorw("callback query is nil")
-		return
-	}
-
 	chatID := update.CallbackQuery.Message.GetChat().ID
 	messageID := update.CallbackQuery.Message.GetMessageID()
 

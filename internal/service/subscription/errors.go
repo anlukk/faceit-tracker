@@ -1,4 +1,4 @@
-package sub
+package subscription
 
 import "errors"
 
@@ -7,4 +7,5 @@ var (
 	ErrInvalidPlayerID = errors.New("invalid playerID")
 	ErrInvalidNickname = errors.New("invalid nickname")
 	ErrAlreadyExists   = errors.New("already exists")
+	ErrNoSubscribers   = errors.New("no subscribers")
 )

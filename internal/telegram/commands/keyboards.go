@@ -6,14 +6,15 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func BuildMainKeyboard(deps *core.Dependencies) *telego.InlineKeyboardMarkup {
+func BuildMainKeyboard(
+	deps *core.Dependencies) *telego.InlineKeyboardMarkup {
 	inlineKeyBoard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(
 				deps.Messages.StartCommand.
 					InlineKeyboard.KeyboardRow1.Options,
 			).
-				WithCallbackData("subscriptions"),
+				WithCallbackData("subscription"),
 		),
 
 		tu.InlineKeyboardRow(
@@ -35,7 +36,8 @@ func BuildMainKeyboard(deps *core.Dependencies) *telego.InlineKeyboardMarkup {
 	return inlineKeyBoard
 }
 
-func BuildSubscriptionKeyboard(deps *core.Dependencies) *telego.InlineKeyboardMarkup {
+func BuildSubscriptionKeyboard(
+	deps *core.Dependencies) *telego.InlineKeyboardMarkup {
 	return tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(
@@ -56,25 +58,41 @@ func BuildSubscriptionKeyboard(deps *core.Dependencies) *telego.InlineKeyboardMa
 				WithCallbackData("list"),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(deps.Messages.SubscriptionsCommand.
-				InlineKeyboard.KeyboardRow5.Back).
+			tu.InlineKeyboardButton(
+				deps.Messages.SubscriptionsCommand.
+					InlineKeyboard.KeyboardRow5.Back).
 				WithCallbackData("back"),
 		),
 	)
 }
 
-func BuildSettingsKeyboard(deps *core.Dependencies) *telego.InlineKeyboardMarkup {
+func BuildSettingsKeyboard(
+	deps *core.Dependencies,
+	notificationsEnabled bool) *telego.InlineKeyboardMarkup {
+
+	notificationsText := deps.Messages.SettingsCommand.
+		InlineKeyboard.KeyboardRow2.Notifications
+	if notificationsEnabled {
+		notificationsText += " 🔔"
+	} else {
+		notificationsText += " 🔕"
+	}
+
 	return tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Language").
+			tu.InlineKeyboardButton(
+				deps.Messages.SettingsCommand.
+					InlineKeyboard.KeyboardRow1.Language).
 				WithCallbackData("language:1"),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Notifications").
-				WithCallbackData("notifications:1"),
+			tu.InlineKeyboardButton(notificationsText).
+				WithCallbackData("notification"),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Back").
+			tu.InlineKeyboardButton(
+				deps.Messages.SettingsCommand.
+					InlineKeyboard.KeyboardRow3.Back).
 				WithCallbackData("back"),
 		),
 	)

@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"fmt"
-	"github.com/anlukk/faceit-tracker/internal/db/models"
+	dbModels "github.com/anlukk/faceit-tracker/internal/db/models"
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/config"
@@ -50,7 +50,8 @@ func Close(db *gorm.DB) error {
 
 func migrate(db *gorm.DB) error {
 	models := []interface{}{
-		&models.Subscription{},
+		&dbModels.Subscription{},
+		&dbModels.UserSettings{},
 	}
 
 	for _, model := range models {

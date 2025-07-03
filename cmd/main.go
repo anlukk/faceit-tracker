@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/anlukk/faceit-tracker/internal/config"
 	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/db"
 	"github.com/anlukk/faceit-tracker/internal/db/postgres"
 	"github.com/anlukk/faceit-tracker/internal/faceit"
 	"github.com/anlukk/faceit-tracker/internal/service"
@@ -35,7 +34,7 @@ func main() {
 			"error", err)
 	}
 
-	client, err := faceit.NewClientImpl(cfg.FaceitAPIToken)
+	faceitClient, err := faceit.NewClient(cfg.FaceitAPIToken)
 	if err != nil {
 		sugar.Fatalw("failed to create faceit client",
 			"error", err)
@@ -53,16 +52,13 @@ func main() {
 		}
 	}()
 
-	// initialize repositories and services
-	repos := db.NewRepositories(dbConn)
-	services := service.NewServices(repos)
-
+	services := service.NewServices(dbConn, faceitClient)
 	dependencies := &core.Dependencies{
 		Config:   cfg,
 		Messages: &messages,
 		Logger:   sugar,
 		Db:       dbConn,
-		Faceit:   client,
+		Faceit:   faceitClient,
 		Services: services,
 	}
 

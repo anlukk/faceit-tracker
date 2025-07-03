@@ -9,11 +9,15 @@ nickname_for_subscription: "Enter the nickname of the player you want to add: "
 nickname_for_unsubscription: "Enter the nickname of the player you want to delete: "
 success_subscription: "Player added successfully!"
 success_unsubscription: "Player deleted successfully!"
+you_are_not_subscribed: "Failed to get subscription: "
+failed_subscription: "Failed to subscription: "
+failed_to_get_subscriptions: "Failed to get subscription: "
+settings_command_message: "Here you can change the language of the bot and enable/disable notification:"
 
 start_command:
   inline_keyboard:
     keyboard_row_1:
-      options: "Subscriptions 🔔"
+      options: "Subscriptions 📋"
     keyboard_row_2:
       settings: "Settings ⚙️"
     keyboard_row_4:
@@ -26,7 +30,7 @@ subscriptions_command:
     keyboard_row_2:
       remove_player: "Delete player ➖"
     keyboard_row_4:
-      list: "My subscriptions 📋"
+      list: "My subscription 📋"
     keyboard_row_5:
       back: "⬅️ Back"
 
@@ -35,6 +39,6 @@ settings_command:
     keyboard_row_1:
       language: "Language 🌐"
     keyboard_row_2:
-      notifications: "Notifications 🔔"
+      notification: "Notifications "
     keyboard_row_3:
       back: "Back ⬅️"

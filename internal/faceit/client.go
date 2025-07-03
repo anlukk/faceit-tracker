@@ -12,35 +12,32 @@ var (
 	ErrEmptyUsername = errors.New("empty username")
 )
 
-type Client interface {
-	GetUser(ctx context.Context, username string) (faceit3.Player, error)
-	GetUserIDByUsername(ctx context.Context, username string) (string, error)
-}
-
-type ClientImpl struct {
+type Client struct {
 	client *faceit3.APIClient
 }
 
-func NewClientImpl(apiToken string) (*ClientImpl, error) {
+func NewClient(apiToken string) (*Client, error) {
 	if apiToken == "" {
 		return nil, errors.New("faceit api token is empty")
 	}
 
 	cfg := faceit3.NewConfiguration()
 	cfg.AddDefaultHeader("Authorization", "Bearer "+apiToken)
-	client := faceit3.NewAPIClient(cfg)
 
-	return &ClientImpl{
+	client := faceit3.NewAPIClient(cfg)
+	return &Client{
 		client: client,
 	}, nil
 }
 
-func (f *ClientImpl) GetUser(ctx context.Context, username string) (faceit3.Player, error) {
+func (f *Client) GetPlayer(
+	ctx context.Context,
+	username string) (faceit3.Player, error) {
 	if username == "" {
 		return faceit3.Player{}, ErrEmptyUsername
 	}
 
-	playerID, err := f.GetUserIDByUsername(ctx, username)
+	playerID, err := f.GetPlayerIDByUsername(ctx, username)
 	if err != nil {
 		return faceit3.Player{}, fmt.Errorf("get user id: %w", err)
 	}
@@ -57,14 +54,18 @@ func (f *ClientImpl) GetUser(ctx context.Context, username string) (faceit3.Play
 	return player, nil
 }
 
-func (f *ClientImpl) GetUserIDByUsername(ctx context.Context, username string) (string, error) {
+func (f *Client) GetPlayerIDByUsername(
+	ctx context.Context,
+	username string) (string, error) {
 	if username == "" {
 		return "", ErrEmptyUsername
 	}
 
-	res, _, err := f.client.SearchApi.SearchPlayers(ctx, username, &faceit3.SearchApiSearchPlayersOpts{
-		Limit: optional.NewInt32(1),
-	})
+	res, _, err := f.client.
+		SearchApi.
+		SearchPlayers(ctx, username, &faceit3.SearchApiSearchPlayersOpts{
+			Limit: optional.NewInt32(1),
+		})
 	if err != nil {
 		return "", fmt.Errorf("search player: %w", err)
 	}
@@ -74,4 +75,42 @@ func (f *ClientImpl) GetUserIDByUsername(ctx context.Context, username string) (
 	}
 
 	return res.Items[0].PlayerId, nil
+}
+
+func (f *Client) GetLastMatch(
+	ctx context.Context,
+	username string) (faceit3.Match, error) {
+	if username == "" {
+		return faceit3.Match{}, ErrEmptyUsername
+	}
+
+	playerID, err := f.GetPlayerIDByUsername(ctx, username)
+	if err != nil {
+		return faceit3.Match{}, fmt.Errorf("get player id: %w", err)
+	}
+
+	history, _, err := f.client.
+		PlayersApi.
+		GetPlayerHistory(ctx, playerID, "cs2", &faceit3.PlayersApiGetPlayerHistoryOpts{
+			Limit: optional.NewInt32(1),
+		})
+	if err != nil {
+		return faceit3.Match{}, fmt.Errorf("get player history: %w", err)
+	}
+
+	if len(history.Items) == 0 {
+		return faceit3.Match{}, fmt.Errorf("player has no matches")
+	}
+
+	matchID := history.Items[0].MatchId
+	if matchID == "" {
+		return faceit3.Match{}, fmt.Errorf("match id is empty")
+	}
+
+	match, _, err := f.client.MatchesApi.GetMatch(ctx, matchID)
+	if err != nil {
+		return faceit3.Match{}, fmt.Errorf("get match: %w", err)
+	}
+
+	return match, nil
 }

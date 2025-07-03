@@ -8,7 +8,6 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	"go.uber.org/zap"
-	"strings"
 	"sync"
 )
 
@@ -60,7 +59,10 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 			go func() {
 				defer func() {
 					if r := recover(); r != nil {
-						service.deps.Logger.Error("panic in handler", zap.Any("panic", r))
+						service.
+							deps.
+							Logger.
+							Error("panic in handler", zap.Any("panic", r))
 					}
 				}()
 				next(bot, update)
@@ -82,23 +84,28 @@ func (t *Telegram) registerCommands() error {
 	)
 
 	t.handlers.Handle(
-		t.commands.StartCommand.HandleOptionsCallback,
+		t.commands.StartCommand.HandleSubscriptionMenuCallback,
 		th.CallbackDataPrefix("menu:"),
 	)
 
 	t.handlers.Handle(
-		t.commands.StartCommand.HandleOptionsCallback,
-		th.CallbackDataEqual("subscriptions"),
+		t.commands.StartCommand.HandleSubscriptionMenuCallback,
+		th.CallbackDataEqual("subscription"),
 	)
-
-	//t.handlers.Handle(
-	//	t.commands.StartCommand.HandleOptionsCallback,
-	//	th.CallbackDataEqual("settings"),
-	//)
 
 	t.handlers.Handle(
 		t.commands.StartCommand.HandleBackCallback,
 		th.CallbackDataEqual("back"),
+	)
+
+	t.handlers.Handle(
+		t.commands.StartCommand.HandleSettingsMenuCallback,
+		th.CallbackDataEqual("settings"),
+	)
+
+	t.handlers.Handle(
+		t.commands.StartCommand.HandleSettingsMenuCallback,
+		th.CallbackDataEqual("notification"),
 	)
 
 	// Subscription
@@ -108,7 +115,7 @@ func (t *Telegram) registerCommands() error {
 	)
 	t.handlers.Handle(
 		t.commands.Subscription.HandleUserMessageFromAdd,
-		AnyMessageForAdd(),
+		commands.AnyMessageForAdd(),
 	)
 
 	t.handlers.Handle(
@@ -117,7 +124,7 @@ func (t *Telegram) registerCommands() error {
 	)
 	t.handlers.Handle(
 		t.commands.Subscription.HandleUserMessageFromRemove,
-		AnyMessageForRemove(),
+		commands.AnyMessageForRemove(),
 	)
 
 	t.handlers.Handle(
@@ -125,7 +132,6 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataEqual("list"),
 	)
 
-	// Search Player Command
 	t.handlers.Handle(
 		t.commands.SearchPlayerCommand.PromptPlayerSearch,
 		th.TextEqual("/searchplayer"),
@@ -136,22 +142,6 @@ func (t *Telegram) registerCommands() error {
 	)
 
 	return nil
-}
-
-func AnyMessageForAdd() th.Predicate {
-	return func(update telego.Update) bool {
-		return update.Message != nil &&
-			update.Message.ReplyToMessage != nil &&
-			strings.Contains(update.Message.ReplyToMessage.Text, "add")
-	}
-}
-
-func AnyMessageForRemove() th.Predicate {
-	return func(update telego.Update) bool {
-		return update.Message != nil &&
-			update.Message.ReplyToMessage != nil &&
-			strings.Contains(update.Message.ReplyToMessage.Text, "delete")
-	}
 }
 
 func (t *Telegram) Start() error {

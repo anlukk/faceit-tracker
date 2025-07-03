@@ -1,4 +1,4 @@
-package sub
+package subscription
 
 import (
 	"context"
@@ -7,11 +7,18 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/db/models"
 )
 
-type Service struct {
-	repo db.SubDB
+type Subscription interface {
+	Subscribe(ctx context.Context, chatID int64, playerID, nickname string) error
+	Unsubscribe(ctx context.Context, chatID int64, playerID string) error
+	IsSubscribed(ctx context.Context, chatID int64, playerID string) (bool, error)
+	GetSubscribers(ctx context.Context, chatID int64) ([]models.Subscription, error)
 }
 
-func NewService(repo db.SubDB) *Service {
+type Service struct {
+	repo db.SubscriptionDB
+}
+
+func NewService(repo db.SubscriptionDB) *Service {
 	return &Service{
 		repo: repo,
 	}
@@ -84,6 +91,10 @@ func (s *Service) GetSubscribers(ctx context.Context, chatID int64) ([]models.Su
 	subs, err := s.repo.GetSubscribers(ctx, chatID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscribers: %w", err)
+	}
+
+	if len(subs) == 0 {
+		return nil, ErrNoSubscribers
 	}
 
 	return subs, nil
