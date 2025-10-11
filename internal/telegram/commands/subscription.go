@@ -269,7 +269,7 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 		"message_id", messageID,
 	)
 
-	subs, err := s.deps.SubscriptionRepo.GetSubscribersByChatID(ctx, chatID)
+	subs, err := s.deps.SubscriptionRepo.GetSubscriptionByChatID(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get subscriber", "error", err)
 		_, err = bot.SendMessage(tu.Message(tu.ID(chatID),
