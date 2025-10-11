@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -19,6 +20,9 @@ type BotMessages struct {
 	FailedToGetSubs        string `yaml:"failed_to_get_subscriptions"`
 	SettingsCommandMessage string `yaml:"settings_command_message"`
 	NoSubscriptions        string `yaml:"no_subscriptions"`
+	MatchFinish            string `yaml:"match_finish"`
+	MatchWin               string `yaml:"match_win"`
+	MatchLoose             string `yaml:"match_loose"`
 
 	StartCommand struct {
 		InlineKeyboard struct {

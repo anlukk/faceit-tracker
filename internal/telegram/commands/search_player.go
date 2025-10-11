@@ -3,9 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
-	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 	"strings"
 	"time"
+
+	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
@@ -44,7 +45,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 	userId := tu.ID(update.Message.From.ID)
 	userMessage := update.Message.Text
 	if strings.TrimSpace(userMessage) == "" {
-		_, err := bot.SendMessage(tu.Message(userId, "Please enter a valid username.").
+		_, err := bot.SendMessage(tu.Message(userId, "Please enter a valid nickname.").
 			WithParseMode(telego.ModeHTML))
 		if err != nil {
 			s.deps.Logger.Errorw("send message error", "error", err)

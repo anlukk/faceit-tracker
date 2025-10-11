@@ -1,17 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/anlukk/faceit-tracker/internal/config"
-	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/db/postgres"
-	"github.com/anlukk/faceit-tracker/internal/faceit"
-	"github.com/anlukk/faceit-tracker/internal/service"
-	"github.com/anlukk/faceit-tracker/internal/telegram"
-	"github.com/anlukk/faceit-tracker/pkg/logger"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/anlukk/faceit-tracker/internal/config"
+	"github.com/anlukk/faceit-tracker/internal/core"
+	"github.com/anlukk/faceit-tracker/internal/db"
+	"github.com/anlukk/faceit-tracker/internal/db/postgres"
+	"github.com/anlukk/faceit-tracker/internal/faceit"
+	"github.com/anlukk/faceit-tracker/internal/notifier"
+	"github.com/anlukk/faceit-tracker/internal/telegram"
+	"github.com/anlukk/faceit-tracker/pkg/logger"
 )
 
 func main() {
@@ -52,24 +55,31 @@ func main() {
 		}
 	}()
 
-	services := service.NewServices(dbConn, faceitClient)
 	dependencies := &core.Dependencies{
-		Config:   cfg,
-		Messages: &messages,
-		Logger:   sugar,
-		Db:       dbConn,
-		Faceit:   faceitClient,
-		Services: services,
+		Config:           cfg,
+		Messages:         &messages,
+		Logger:           sugar,
+		Faceit:           faceitClient,
+		SettingsRepo:     db.NewSettingsDBImpl(dbConn),
+		SubscriptionRepo: db.NewSubscriptionDBImpl(dbConn),
 	}
 
-	bot, err := telegram.NewTelegram(dependencies)
+	telegramService, err := telegram.NewTelegram(dependencies)
 	if err != nil {
-		sugar.Fatalw("failed to initialize telegram bot", "error", err)
+		sugar.Fatalw("failed to initialize telegram service", "error", err)
 	}
 
-	if err := bot.Start(); err != nil {
-		sugar.Fatalw("failed to start bot", "error", err)
+	if err := telegramService.Start(); err != nil {
+		sugar.Fatalw("failed to start telegram service", "error", err)
 	}
+
+	messenger := telegram.NewMessengerAdapter(telegramService.Bot())
+	n := notifier.New(dependencies, messenger)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go n.NotifyEndMatch(ctx)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -79,6 +89,6 @@ func main() {
 	<-sigChan
 
 	sugar.Info("Shutting down...")
-	bot.Stop()
+	telegramService.Stop()
 	sugar.Info("Application shutdown complete")
 }

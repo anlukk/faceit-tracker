@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/anlukk/faceit-tracker/internal/db/models"
 	"gorm.io/gorm"
 )
@@ -84,7 +85,7 @@ func (s *SubscriptionDBImpl) IsSubscribed(
 	return count > 0, nil
 }
 
-func (s *SubscriptionDBImpl) GetSubscribers(
+func (s *SubscriptionDBImpl) GetSubscriptionByChatID(
 	ctx context.Context,
 	chatID int64) ([]models.Subscription, error) {
 	var subs []models.Subscription
@@ -96,6 +97,17 @@ func (s *SubscriptionDBImpl) GetSubscribers(
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscribers: %w", err)
+	}
+
+	return subs, nil
+}
+
+func (s *SubscriptionDBImpl) GetAllSubscription(
+	ctx context.Context) ([]models.Subscription, error) {
+	var subs []models.Subscription
+	err := s.db.WithContext(ctx).Find(&subs).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all subscribers: %w", err)
 	}
 
 	return subs, nil

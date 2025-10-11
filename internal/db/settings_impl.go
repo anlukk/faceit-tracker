@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/anlukk/faceit-tracker/internal/db/models"
 	"gorm.io/gorm"
 )
@@ -12,13 +13,11 @@ type SettingsDBImpl struct {
 	db *gorm.DB
 }
 
-func NewSettngsDBImpl(db *gorm.DB) *SettingsDBImpl {
+func NewSettingsDBImpl(db *gorm.DB) *SettingsDBImpl {
 	return &SettingsDBImpl{db: db}
 }
 
-func (s *SettingsDBImpl) GetNotificationsEnabled(
-	ctx context.Context,
-	chatID int64) (bool, error) {
+func (s *SettingsDBImpl) GetNotificationsEnabled(ctx context.Context, chatID int64) (bool, error) {
 	var setting models.UserSettings
 	err := s.db.WithContext(ctx).
 		Where("chat_id = ?", chatID).
@@ -44,9 +43,7 @@ func (s *SettingsDBImpl) GetNotificationsEnabled(
 	return setting.NotificationsEnabled, nil
 }
 
-func (s *SettingsDBImpl) SetNotificationsEnabled(
-	ctx context.Context,
-	chatID int64, enabled bool) error {
+func (s *SettingsDBImpl) SetNotificationsEnabled(ctx context.Context, chatID int64, enabled bool) error {
 	var settings models.UserSettings
 	var count int64
 
@@ -103,9 +100,7 @@ func (s *SettingsDBImpl) GetAllWithNotificationsEnabled(ctx context.Context) ([]
 	return chatIDs, nil
 }
 
-func (s *SettingsDBImpl) GetLanguage(
-	ctx context.Context,
-	chatID int64) string {
+func (s *SettingsDBImpl) GetLanguage(ctx context.Context, chatID int64) string {
 	var settings models.UserSettings
 	err := s.db.
 		WithContext(ctx).
@@ -119,10 +114,7 @@ func (s *SettingsDBImpl) GetLanguage(
 	return settings.Language
 }
 
-func (s *SettingsDBImpl) SetLanguage(
-	ctx context.Context,
-	chatID int64,
-	language string) error {
+func (s *SettingsDBImpl) SetLanguage(ctx context.Context, chatID int64, language string) error {
 	var settings models.UserSettings
 	err := s.db.
 		WithContext(ctx).

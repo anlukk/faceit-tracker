@@ -1,4 +1,4 @@
-package match
+package faceit
 
 type Voting struct {
 	Map `json:"map"`
@@ -9,16 +9,18 @@ type Map struct {
 }
 
 type OngoingMatchInfo struct {
-	MatchID string
-	Map     string
-	Elo     bool
-	Team1   string
-	Team2   string
-	StartAt int64
+	Nickname string
+	MatchID  string
+	Map      string
+	Elo      bool
+	Team1    string
+	Team2    string
+	StartAt  int64
 }
 
 type FinishMatchResult struct {
-	MatchID  string
+	Nickname string
+	MatchId  string
 	Win      bool
 	Score    string
 	Opponent string

@@ -9,7 +9,6 @@ type BotCommands struct {
 	StartCommand        *Start
 	SearchPlayerCommand *SearchPlayer
 	Subscription        *Subscription
-	Notifications       *Notification
 }
 
 func NewBotCommands(

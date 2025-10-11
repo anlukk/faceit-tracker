@@ -2,13 +2,14 @@ package telegram
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/telegram/commands"
 	"github.com/anlukk/faceit-tracker/internal/telegram/menu"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Telegram struct {
@@ -37,7 +38,7 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 		return nil, fmt.Errorf("updates error: %v", err)
 	}
 
-	botHandlers, err := th.NewBotHandler(bot, updates)
+	botHandler, err := th.NewBotHandler(bot, updates)
 	if err != nil {
 		return nil, fmt.Errorf("bot commands error: %v", err)
 	}
@@ -47,14 +48,14 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 
 	service := &Telegram{
 		bot:         bot,
-		handlers:    botHandlers,
+		handlers:    botHandler,
 		menuManager: newMenu,
 		commands:    newCommands,
 		deps:        deps,
 		stopChan:    make(chan struct{}),
 	}
 
-	botHandlers.Use(
+	botHandler.Use(
 		func(bot *telego.Bot, update telego.Update, next th.Handler) {
 			go func() {
 				defer func() {
@@ -75,6 +76,10 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 	}
 
 	return service, nil
+}
+
+func (t *Telegram) Bot() *telego.Bot {
+	return t.bot
 }
 
 func (t *Telegram) registerCommands() error {
@@ -113,7 +118,7 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataEqual("add_player"),
 	)
 	t.handlers.Handle(
-		t.commands.Subscription.HandleSubscriptionUsernameReply,
+		t.commands.Subscription.HandleSubscriptionNicknameReply,
 		commands.IsSubscriptionReplyMessage(),
 	)
 
@@ -122,7 +127,7 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataEqual("remove_player"),
 	)
 	t.handlers.Handle(
-		t.commands.Subscription.HandleUnsubscriptionUsernameReply,
+		t.commands.Subscription.HandleUnsubscriptionNicknameReply,
 		commands.IsUnsubscriptionReplyMessage(),
 	)
 

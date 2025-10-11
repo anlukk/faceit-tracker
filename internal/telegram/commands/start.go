@@ -2,11 +2,12 @@ package commands
 
 import (
 	"context"
+	"time"
+
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/telegram/menu"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
-	"time"
 )
 
 type Start struct {
@@ -87,7 +88,7 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
 
-	current, err := s.deps.Services.Settings.GetNotificationsEnabled(ctx, chatID)
+	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
 		return
@@ -125,14 +126,14 @@ func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
 
-	current, err := s.deps.Services.Settings.GetNotificationsEnabled(ctx, chatID)
+	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
 		return
 	}
 
 	newState := !current
-	err = s.deps.Services.Settings.SetNotificationsEnabled(ctx, chatID, newState)
+	err = s.deps.SettingsRepo.SetNotificationsEnabled(ctx, chatID, newState)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to set notifications status", "error", err)
 		return

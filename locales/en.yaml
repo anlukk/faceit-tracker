@@ -15,6 +15,11 @@ failed_to_get_subscriptions: "Failed to get subscription: "
 settings_command_message: "Here you can change the language of the bot and enable/disable notification:"
 no_subscriptions: "You have no subscriptions yet."
 
+match_finish: "Match is over!"
+
+match_win: "Victory!"
+match_loose: "Defeat!"
+
 start_command:
   inline_keyboard:
     keyboard_row_1:

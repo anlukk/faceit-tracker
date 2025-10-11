@@ -1,6 +1,6 @@
 module github.com/anlukk/faceit-tracker
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
@@ -41,7 +41,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.6.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
