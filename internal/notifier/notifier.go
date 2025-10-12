@@ -29,11 +29,7 @@ func New(deps *core.Dependencies, messenger Messenger) *Notifier {
 }
 
 func (n *Notifier) NotifyEndMatch(ctx context.Context) {
-	if err := n.initSubscribers(ctx); err != nil {
-		n.deps.Logger.Error("failed to init subscribers", err)
-	}
-
-	ticker := time.NewTicker(2 * time.Minute)
+	ticker := time.NewTicker(3 * time.Minute)
 	defer ticker.Stop()
 
 	for {
@@ -41,7 +37,12 @@ func (n *Notifier) NotifyEndMatch(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if err := n.initSubscribers(ctx); err != nil {
+				n.deps.Logger.Error("failed to init subscribers", err)
+			}
 			for nickname := range n.playerSubs {
+				n.deps.Logger.Debugw("start processing subscriber", "nickname", nickname)
+
 				match, err := n.deps.Faceit.GetLastMatch(ctx, nickname)
 				if err != nil {
 					n.deps.Logger.Errorw(
@@ -50,7 +51,26 @@ func (n *Notifier) NotifyEndMatch(ctx context.Context) {
 						"error", err)
 					continue
 				}
+				n.deps.Logger.Debugw(
+					"checking match status",
+					"nickname", nickname,
+					"status", match.Status,
+					"matchID", match.MatchId,
+					"finished time", match.FinishedAt,
+					"alreadyNotified", n.cache.alreadyNotified(nickname, match.MatchId),
+				)
 				if match.Status == "FINISHED" && !n.cache.alreadyNotified(nickname, match.MatchId) {
+					finishedAt := time.Unix(match.FinishedAt, 0)
+					if time.Since(finishedAt) > 10*time.Minute {
+						n.deps.Logger.Debugw(
+							"skipping match notification, match too old",
+							"nickname", nickname,
+							"matchID", match.MatchId,
+							"finishedAt", finishedAt,
+						)
+						continue
+					}
+
 					matchFinish, err := n.deps.Faceit.GetFinishMatchResult(ctx, nickname)
 					if err != nil {
 						n.deps.Logger.Errorw(
@@ -94,13 +114,13 @@ func (n *Notifier) formatInfoMatchFinish(
 	}
 
 	result := fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s",
+		"%s\n%s%s\n%s\n%s%s\n",
 		n.deps.Messages.MatchFinish,
+		n.deps.Messages.Nickname,
 		matchInfo.Nickname,
-		matchInfo.Win,
 		isWin[matchInfo.Win],
+		n.deps.Messages.MatchScore,
 		matchInfo.Score,
-		matchInfo.Opponent,
 	)
 
 	return result

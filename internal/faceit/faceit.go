@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 
 	faceit3 "github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 	"github.com/antihax/optional"
@@ -16,6 +18,7 @@ var (
 
 type Client struct {
 	client *faceit3.APIClient
+	token  string
 }
 
 func NewClient(apiToken string) (*Client, error) {
@@ -29,6 +32,7 @@ func NewClient(apiToken string) (*Client, error) {
 	client := faceit3.NewAPIClient(cfg)
 	return &Client{
 		client: client,
+		token:  apiToken,
 	}, nil
 }
 
@@ -193,8 +197,6 @@ func (f *Client) GetFinishMatchResult(
 		return nil, fmt.Errorf("cannot find opponent team")
 	}
 
-	playerScore := lastMatch.Results.Score[playerTeamKey]
-	opponentScore := lastMatch.Results.Score[opponentTeamKey]
 	win := lastMatch.Results.Winner == playerTeamKey
 
 	mapName := ""
@@ -205,11 +207,52 @@ func (f *Client) GetFinishMatchResult(
 		mapName = v.Map.Voted
 	}
 
+	t1, t2, err := f.getRoundScore(ctx, lastMatch.MatchId)
+	if err != nil {
+		return nil, fmt.Errorf("get round score: %w", err)
+	}
+
 	return &FinishMatchResult{
+		Nickname: nickname,
 		MatchId:  lastMatch.MatchId,
 		Win:      win,
-		Score:    fmt.Sprintf("%d - %d", playerScore, opponentScore),
-		Opponent: lastMatch.Teams[opponentTeamKey].Name,
-		Map:      mapName,
+		Score:    fmt.Sprintf("%d - %d", t1, t2),
+		Teams: fmt.Sprintf(
+			"%s - %s",
+			lastMatch.Teams[opponentTeamKey].Name, lastMatch.Teams[playerTeamKey].Name,
+		),
+		Map: mapName,
 	}, nil
+}
+
+func (f *Client) getRoundScore(ctx context.Context, matchID string) (int, int, error) {
+	req, _ := http.NewRequestWithContext(ctx,
+		http.MethodGet,
+		fmt.Sprintf("https://open.faceit.com/data/v4/matches/%s/stats", matchID),
+		nil,
+	)
+	req.Header.Set("Authorization", "Bearer "+f.token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+
+	var stats MatchStats
+	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		return 0, 0, err
+	}
+
+	if len(stats.Rounds) == 0 {
+		return 0, 0, fmt.Errorf("no rounds data")
+	}
+
+	team1 := stats.Rounds[0].Teams[0].TeamStats["Final Score"]
+	team2 := stats.Rounds[0].Teams[1].TeamStats["Final Score"]
+
+	t1, _ := strconv.Atoi(team1)
+	t2, _ := strconv.Atoi(team2)
+
+	return t1, t2, nil
 }

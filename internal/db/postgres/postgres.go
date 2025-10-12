@@ -2,8 +2,9 @@ package postgres
 
 import (
 	"fmt"
-	dbModels "github.com/anlukk/faceit-tracker/internal/db/models"
 	"time"
+
+	dbModels "github.com/anlukk/faceit-tracker/internal/db/models"
 
 	"github.com/anlukk/faceit-tracker/internal/config"
 	"gorm.io/driver/postgres"
@@ -33,8 +34,8 @@ func NewDb(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Minute)
 
-	if err := migrate(db); err != nil {
-		return nil, fmt.Errorf("failed to migrate postgres: %w", err)
+	if err := autoMigrate(db); err != nil {
+		return nil, fmt.Errorf("failed to autoMigrate postgres: %w", err)
 	}
 
 	return db, nil
@@ -48,7 +49,7 @@ func Close(db *gorm.DB) error {
 	return sqlDB.Close()
 }
 
-func migrate(db *gorm.DB) error {
+func autoMigrate(db *gorm.DB) error {
 	models := []interface{}{
 		&dbModels.Subscription{},
 		&dbModels.UserSettings{},
@@ -56,7 +57,7 @@ func migrate(db *gorm.DB) error {
 
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
-			return fmt.Errorf("failed to migrate model: %w", err)
+			return fmt.Errorf("failed to autoMigrate model: %w", err)
 		}
 	}
 	return nil

@@ -8,6 +8,15 @@ type Map struct {
 	Voted string `json:"voted"`
 }
 
+type MatchStats struct {
+	Rounds []struct {
+		Teams []struct {
+			TeamID    string            `json:"team_id"`
+			TeamStats map[string]string `json:"team_stats"`
+		} `json:"teams"`
+	} `json:"rounds"`
+}
+
 type OngoingMatchInfo struct {
 	Nickname string
 	MatchID  string
@@ -23,6 +32,6 @@ type FinishMatchResult struct {
 	MatchId  string
 	Win      bool
 	Score    string
-	Opponent string
+	Teams    string
 	Map      string
 }

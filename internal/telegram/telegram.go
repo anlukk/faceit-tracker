@@ -26,8 +26,8 @@ type Telegram struct {
 func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 	bot, err := telego.NewBot(
 		deps.Config.TelegramToken,
-		telego.WithLogger(deps.Logger),
-		telego.WithDefaultLogger(true, true),
+		telego.WithLogger(NewZapTelegoLogger(deps.Logger)),
+		//telego.WithDefaultLogger(true, true),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("telegram service init: %v", err)
@@ -43,14 +43,14 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 		return nil, fmt.Errorf("bot commands error: %v", err)
 	}
 
-	newMenu := menu.NewMenuManager(deps.Logger)
-	newCommands := commands.NewBotCommands(deps, newMenu)
+	menuManager := menu.NewMenuManager(deps.Logger)
+	botCommands := commands.NewBotCommands(deps, menuManager)
 
 	service := &Telegram{
 		bot:         bot,
 		handlers:    botHandler,
-		menuManager: newMenu,
-		commands:    newCommands,
+		menuManager: menuManager,
+		commands:    botCommands,
 		deps:        deps,
 		stopChan:    make(chan struct{}),
 	}

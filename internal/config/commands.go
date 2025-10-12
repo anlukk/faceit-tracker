@@ -24,6 +24,11 @@ type BotMessages struct {
 	MatchWin               string `yaml:"match_win"`
 	MatchLoose             string `yaml:"match_loose"`
 
+	Nickname   string `yaml:"nickname"`
+	MatchScore string `yaml:"match_score"`
+	Team       string `yaml:"team"`
+	Elo        string `yaml:"elo"`
+
 	StartCommand struct {
 		InlineKeyboard struct {
 			KeyboardRow1 struct {

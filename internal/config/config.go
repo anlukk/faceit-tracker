@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/caarlos0/env/v8"
 	"github.com/joho/godotenv"
 )
@@ -12,14 +13,11 @@ type Config struct {
 	TelegramToken     string   `env:"TELEGRAM_TOKEN"`
 	DatabaseURL       string   `env:"DATABASE_URL"`
 
-	// Faceit API
 	FaceitAPIToken string `env:"FACEIT_API_TOKEN"`
 	FaceitAPIURL   string `env:"FACEIT_API_URL"`
 
-	// Logger
 	LoggerLevel string `env:"LOGGER_LEVEL"`
 
-	// Database
 	DBHost     string `env:"DB_HOST"`
 	DBPort     string `env:"DB_PORT"`
 	DBUser     string `env:"DB_USER"`

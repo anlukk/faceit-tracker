@@ -20,6 +20,11 @@ match_finish: "Match is over!"
 match_win: "Victory!"
 match_loose: "Defeat!"
 
+nickname: "Nickname: "
+elo: "Elo: "
+match_score: "Score: "
+team: "Team: "
+
 start_command:
   inline_keyboard:
     keyboard_row_1:
