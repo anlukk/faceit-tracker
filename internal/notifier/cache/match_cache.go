@@ -1,4 +1,4 @@
-package notifier
+package cache
 
 import "sync"
 
@@ -12,7 +12,7 @@ func NewMatchCache() *MatchCache {
 	}
 }
 
-func (m *MatchCache) alreadyNotified(nickname, matchID string) bool {
+func (m *MatchCache) AlreadyNotified(nickname, matchID string) bool {
 	if nickname == "" || matchID == "" {
 		return false
 	}
@@ -25,7 +25,7 @@ func (m *MatchCache) alreadyNotified(nickname, matchID string) bool {
 	return val == matchID
 }
 
-func (m *MatchCache) markNotified(nickname, matchID string) {
+func (m *MatchCache) MarkNotified(nickname, matchID string) {
 	if nickname == "" || matchID == "" {
 		return
 	}

@@ -79,7 +79,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go n.NotifyEndMatch(ctx)
+	go n.Run(ctx)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(

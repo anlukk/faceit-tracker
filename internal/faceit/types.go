@@ -31,6 +31,7 @@ type FinishMatchResult struct {
 	Nickname string
 	MatchId  string
 	Win      bool
+	Elo      bool
 	Score    string
 	Teams    string
 	Map      string
