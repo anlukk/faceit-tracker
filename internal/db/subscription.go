@@ -15,5 +15,5 @@ type SubscriptionDB interface {
 
 	GetAllSubscription(ctx context.Context) ([]models.Subscription, error)
 
-	//GetPlayerIDs(ctx context.Context, chatID int64) ([]string, error)
+	Get
 }

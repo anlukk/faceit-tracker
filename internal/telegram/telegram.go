@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
+	"github.com/anlukk/faceit-tracker/internal/telegram/adapters"
 	"github.com/anlukk/faceit-tracker/internal/telegram/commands"
 	"github.com/anlukk/faceit-tracker/internal/telegram/menu"
 	"github.com/mymmrac/telego"
@@ -26,7 +27,7 @@ type Telegram struct {
 func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 	bot, err := telego.NewBot(
 		deps.Config.TelegramToken,
-		telego.WithLogger(NewZapTelegoLogger(deps.Logger)),
+		telego.WithLogger(adapters.NewZapTelegoLogger(deps.Logger)),
 		//telego.WithDefaultLogger(true, true),
 	)
 	if err != nil {

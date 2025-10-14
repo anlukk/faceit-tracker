@@ -14,6 +14,7 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/faceit"
 	"github.com/anlukk/faceit-tracker/internal/notifier"
 	"github.com/anlukk/faceit-tracker/internal/telegram"
+	"github.com/anlukk/faceit-tracker/internal/telegram/adapters"
 	"github.com/anlukk/faceit-tracker/pkg/logger"
 )
 
@@ -73,7 +74,7 @@ func main() {
 		sugar.Fatalw("failed to start telegram service", "error", err)
 	}
 
-	messenger := telegram.NewMessengerAdapter(telegramService.Bot())
+	messenger := adapters.NewMessengerAdapter(telegramService.Bot())
 	n := notifier.New(dependencies, messenger)
 
 	ctx, cancel := context.WithCancel(context.Background())

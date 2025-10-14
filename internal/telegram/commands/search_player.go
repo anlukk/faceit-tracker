@@ -56,7 +56,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 	response, err := s.deps.Faceit.GetPlayer(ctx, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(userId, "Error fetching data from FACEIT API.").
+		_, sendErr := bot.SendMessage(tu.Message(userId, "Error retrieving player data.").
 			WithParseMode(telego.ModeHTML))
 		if sendErr != nil {
 			s.deps.Logger.Errorw("send message error", "error", sendErr)

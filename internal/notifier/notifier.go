@@ -15,7 +15,7 @@ type Notifier struct {
 	deps          *core.Dependencies
 	messenger     Messenger
 	eventHandlers []EventHandlers
-	subs          *Subscriber
+	subs          *SubsInMemoryStorage
 }
 
 func New(deps *core.Dependencies, messenger Messenger) *Notifier {
@@ -29,12 +29,16 @@ func New(deps *core.Dependencies, messenger Messenger) *Notifier {
 	}
 
 	matchCache := cache.NewMatchCache()
-	n.RegisterEventHandlers(event_handlers.NewEndMatch(deps, matchCache))
+	n.RegisterEventHandlers(event_handlers.NewMatchEnd(deps, matchCache))
 
 	return n
 }
 
 func (n *Notifier) RegisterEventHandlers(eventHandlers EventHandlers) {
+	if eventHandlers == nil {
+		n.deps.Logger.Errorw("event handlers is nil")
+	}
+
 	n.eventHandlers = append(n.eventHandlers, eventHandlers)
 }
 
@@ -47,12 +51,6 @@ func (n *Notifier) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			err := n.subs.InitSubscribers(ctx)
-			if err != nil {
-				n.deps.Logger.Errorw("failed to init subscribers", "error", err)
-				continue
-			}
-
 			for _, eventHandler := range n.eventHandlers {
 				events, err := eventHandler.GetEvents(ctx)
 				if err != nil {

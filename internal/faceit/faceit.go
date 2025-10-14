@@ -213,10 +213,11 @@ func (f *Client) GetFinishMatchResult(
 	}
 
 	return &FinishMatchResult{
-		Nickname: nickname,
-		MatchId:  lastMatch.MatchId,
-		Win:      win,
-		Score:    fmt.Sprintf("%d - %d", t1, t2),
+		Nickname:   nickname,
+		MatchId:    lastMatch.MatchId,
+		Win:        win,
+		FinishedAt: lastMatch.FinishedAt,
+		Score:      fmt.Sprintf("%d - %d", t1, t2),
 		Teams: fmt.Sprintf(
 			"%s - %s",
 			lastMatch.Teams[opponentTeamKey].Name, lastMatch.Teams[playerTeamKey].Name,

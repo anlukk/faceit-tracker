@@ -15,7 +15,7 @@ type EndMatch struct {
 	cache *cache.MatchCache
 }
 
-func NewEndMatch(deps *core.Dependencies, cache *cache.MatchCache) *EndMatch {
+func NewMatchEnd(deps *core.Dependencies, cache *cache.MatchCache) *EndMatch {
 	return &EndMatch{
 		deps:  deps,
 		cache: cache,
@@ -31,25 +31,20 @@ func (m *EndMatch) GetEvents(ctx context.Context) ([]Event, error) {
 	}
 
 	for _, sub := range subs {
-		lastMatch, err := m.deps.Faceit.GetLastMatch(ctx, sub.Nickname)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get last match")
-		}
-
-		if lastMatch.Status != "FINISHED" ||
-			m.cache.AlreadyNotified(sub.Nickname, lastMatch.MatchId) {
-			continue
-		}
-
-		finishedAt := time.Unix(lastMatch.FinishedAt, 0)
-
-		if time.Since(finishedAt) > 10*time.Minute {
-			continue
-		}
 
 		finishMatchResult, err := m.deps.Faceit.GetFinishMatchResult(ctx, sub.Nickname)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get finish match result")
+		}
+
+		if m.cache.AlreadyNotified(sub.Nickname, finishMatchResult.MatchId) {
+			continue
+		}
+
+		finishedAt := time.Unix(finishMatchResult.FinishedAt, 0)
+
+		if time.Since(finishedAt) > 10*time.Minute {
+			continue
 		}
 
 		events = append(events, Event{
@@ -60,7 +55,7 @@ func (m *EndMatch) GetEvents(ctx context.Context) ([]Event, error) {
 			Timestamp: time.Now(),
 		})
 
-		m.cache.MarkNotified(sub.Nickname, lastMatch.MatchId)
+		m.cache.MarkNotified(sub.Nickname, finishMatchResult.MatchId)
 	}
 
 	return events, nil

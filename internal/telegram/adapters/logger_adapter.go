@@ -1,4 +1,4 @@
-package telegram
+package adapters
 
 import "go.uber.org/zap"
 
