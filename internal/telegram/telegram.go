@@ -28,7 +28,6 @@ func NewTelegram(deps *core.Dependencies) (*Telegram, error) {
 	bot, err := telego.NewBot(
 		deps.Config.TelegramToken,
 		telego.WithLogger(adapters.NewZapTelegoLogger(deps.Logger)),
-		//telego.WithDefaultLogger(true, true),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("telegram service init: %v", err)

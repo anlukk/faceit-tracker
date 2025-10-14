@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/db/models"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -261,14 +260,6 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 	}
 
 	chatID := msg.GetChat().ID
-	messageID := msg.GetMessageID()
-
-	s.deps.Logger.Debugw(
-		"handle button list",
-		"chat_id", chatID,
-		"message_id", messageID,
-	)
-
 	subs, err := s.deps.SubscriptionRepo.GetSubscriptionByChatID(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get subscriber", "error", err)
@@ -280,7 +271,7 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 		}
 	}
 
-	_, err = bot.SendMessage(tu.Message(tu.ID(chatID), s.formatSubscriptionsList(subs)).
+	_, err = bot.SendMessage(tu.Message(tu.ID(chatID), formatSubscriptionsList(s.deps, subs)).
 		WithParseMode(telego.ModeHTML))
 	if err != nil {
 		s.deps.Logger.Errorw("failed to send message", "error", err)
@@ -290,17 +281,4 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 		s.deps.Logger.Errorw("failed to answer callback", "error", err)
 		return
 	}
-}
-
-func (s *Subscription) formatSubscriptionsList(subs []models.Subscription) string {
-	if len(subs) == 0 {
-		return s.deps.Messages.NoSubscriptions
-	}
-
-	sb := "Your subscription:\n"
-	for i, sub := range subs {
-		sb += fmt.Sprintf("%d. %s\n", i+1, sub.Nickname)
-	}
-
-	return sb
 }

@@ -2,11 +2,8 @@ package commands
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
-
-	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
@@ -64,7 +61,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 		return
 	}
 
-	formattedResponse := formatResponse(&response)
+	formattedResponse := formatSearchCommandResponse(&response)
 	_, err = bot.SendMessage(tu.Message(userId, formattedResponse).
 		WithParseMode(telego.ModeHTML))
 	if err != nil {
@@ -80,15 +77,4 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 		}
 		return
 	}
-}
-
-func formatResponse(response *faceit.Player) string {
-	gamesStr := ""
-	for game, gameInfo := range response.Games {
-		gamesStr += fmt.Sprintf("Game: %s, FaceitElo: %d, SkillLevel: %d\n",
-			game, gameInfo.FaceitElo, gameInfo.SkillLevel)
-	}
-
-	return fmt.Sprintf("Nickname: %s\n"+"Country: %s\n"+"Games: %s\n"+"Steam nickname: %s\n",
-		response.Nickname, response.Country, gamesStr, response.SteamNickname)
 }

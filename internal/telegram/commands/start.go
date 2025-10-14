@@ -49,13 +49,6 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
-
-	s.deps.Logger.Debugw(
-		"handle options callback",
-		"chat_id", chatID,
-		"message_id", messageID,
-	)
-
 	s.menu.SetActive(chatID, "options", messageID)
 
 	_, err := bot.EditMessageText(&telego.EditMessageTextParams{
@@ -86,14 +79,13 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 	}
 
 	chatID := msg.GetChat().ID
-	messageID := msg.GetMessageID()
-
 	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
 		return
 	}
 
+	messageID := msg.GetMessageID()
 	s.menu.SetActive(chatID, "options", messageID)
 
 	_, err = bot.EditMessageText(&telego.EditMessageTextParams{
@@ -124,8 +116,6 @@ func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.
 	}
 
 	chatID := msg.GetChat().ID
-	messageID := msg.GetMessageID()
-
 	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get notifications status", "error", err)
@@ -139,6 +129,7 @@ func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.
 		return
 	}
 
+	messageID := msg.GetMessageID()
 	s.menu.SetActive(chatID, "options", messageID)
 
 	_, err = bot.EditMessageText(&telego.EditMessageTextParams{

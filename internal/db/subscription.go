@@ -14,6 +14,4 @@ type SubscriptionDB interface {
 	GetSubscriptionByChatID(ctx context.Context, chatID int64) ([]models.Subscription, error)
 
 	GetAllSubscription(ctx context.Context) ([]models.Subscription, error)
-
-	Get
 }

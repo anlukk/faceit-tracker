@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
-	cache "github.com/anlukk/faceit-tracker/internal/notifier/cache"
+	"github.com/anlukk/faceit-tracker/internal/notifier/cache"
 	"github.com/anlukk/faceit-tracker/internal/notifier/event_handlers"
 )
 
@@ -15,17 +15,13 @@ type Notifier struct {
 	deps          *core.Dependencies
 	messenger     Messenger
 	eventHandlers []EventHandlers
-	subs          *SubsInMemoryStorage
 }
 
 func New(deps *core.Dependencies, messenger Messenger) *Notifier {
-	subs := NewSubscriber(deps)
-
 	n := &Notifier{
 		deps:          deps,
 		messenger:     messenger,
 		eventHandlers: []EventHandlers{},
-		subs:          subs,
 	}
 
 	matchCache := cache.NewMatchCache()

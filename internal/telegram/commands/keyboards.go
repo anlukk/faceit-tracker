@@ -16,7 +16,6 @@ func BuildMainKeyboard(
 			).
 				WithCallbackData("subscription"),
 		),
-
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(
 				deps.Messages.StartCommand.
