@@ -3,32 +3,24 @@ package cache
 import "sync"
 
 type NotifyCache struct {
-	notifiedMatches sync.Map
+	mu       sync.RWMutex
+	notified map[string]string
 }
 
 func NewNotifyCache() *NotifyCache {
 	return &NotifyCache{
-		notifiedMatches: sync.Map{},
+		notified: make(map[string]string),
 	}
 }
 
-func (m *NotifyCache) AlreadyNotified(nickname, matchID string) bool {
-	if nickname == "" || matchID == "" {
-		return false
-	}
-
-	val, ok := m.notifiedMatches.Load(nickname)
-	if !ok {
-		return false
-	}
-
-	return val == matchID
+func (c *NotifyCache) AlreadyNotified(nickname, matchID string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.notified[nickname] == matchID
 }
 
-func (m *NotifyCache) MarkNotified(nickname, matchID string) {
-	if nickname == "" || matchID == "" {
-		return
-	}
-
-	m.notifiedMatches.Store(nickname, matchID)
+func (c *NotifyCache) MarkNotified(nickname, matchID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.notified[nickname] = matchID
 }

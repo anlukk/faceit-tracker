@@ -82,6 +82,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	sugar.Info("Starting notifier...")
 	go n.Run(ctx)
 
 	sigChan := make(chan os.Signal, 1)

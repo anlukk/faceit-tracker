@@ -2,13 +2,18 @@ package notifier
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/events"
+	"github.com/anlukk/faceit-tracker/internal/events/types"
 )
 
-const notificationTicker = 3 * time.Minute
+const (
+	notificationTicker = 3 * time.Minute
+	numWorkers         = 20
+)
 
 type Notifier struct {
 	deps      *core.Dependencies
@@ -46,13 +51,27 @@ func (n *Notifier) Run(ctx context.Context) {
 				continue
 			}
 
-			for _, event := range collectEvents {
-				err := n.messenger.SendMessage(event.ChatID, event.Message)
-				if err != nil {
-					n.deps.Logger.Errorw("failed to send message", "error", err)
-					continue
-				}
+			eventsChannel := make(chan types.Event, len(collectEvents))
+			var wg sync.WaitGroup
+
+			for i := 0; i < numWorkers; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for event := range eventsChannel {
+						if err := n.messenger.SendMessage(event.ChatID, event.Message); err != nil {
+							n.deps.Logger.Errorw("failed to send message", "error", err)
+						}
+					}
+				}()
 			}
+
+			for _, collectEvent := range collectEvents {
+				eventsChannel <- collectEvent
+			}
+
+			close(eventsChannel)
+			wg.Wait()
 		}
 	}
 }
