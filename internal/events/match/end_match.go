@@ -1,4 +1,4 @@
-package event_handlers
+package match
 
 import (
 	"context"
@@ -7,30 +7,31 @@ import (
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/notifier/cache"
-	"github.com/anlukk/faceit-tracker/internal/notifier/helper"
+	"github.com/anlukk/faceit-tracker/internal/events/cache"
+	"github.com/anlukk/faceit-tracker/internal/events/helper"
+	"github.com/anlukk/faceit-tracker/internal/events/types"
 )
 
 const checkCooldown = 50 * time.Minute
 
-type MatchEnd struct {
+type End struct {
 	deps  *core.Dependencies
-	cache *cache.MatchCache
+	cache *cache.NotifyCache
 
 	timeCheck map[string]time.Time
 	mu        sync.RWMutex
 }
 
-func NewMatchEnd(deps *core.Dependencies, cache *cache.MatchCache) *MatchEnd {
-	return &MatchEnd{
+func NewMatchEnd(deps *core.Dependencies, cache *cache.NotifyCache) *End {
+	return &End{
 		deps:      deps,
 		cache:     cache,
 		timeCheck: make(map[string]time.Time),
 	}
 }
 
-func (m *MatchEnd) GetEvents(ctx context.Context) ([]Event, error) {
-	var events []Event
+func (m *End) GetEvents(ctx context.Context) ([]types.Event, error) {
+	var e []types.Event
 
 	subs, err := m.deps.SubscriptionRepo.GetAllSubscription(ctx)
 	if err != nil {
@@ -62,7 +63,7 @@ func (m *MatchEnd) GetEvents(ctx context.Context) ([]Event, error) {
 
 		formatMessage := helper.FormatMatchEndMessage(m.deps.Messages, finishMatchResult)
 
-		events = append(events, Event{
+		e = append(e, types.Event{
 			Type:      m.EventType(),
 			ChatID:    sub.ChatID,
 			Message:   formatMessage,
@@ -73,14 +74,14 @@ func (m *MatchEnd) GetEvents(ctx context.Context) ([]Event, error) {
 		m.cache.MarkNotified(sub.Nickname, finishMatchResult.MatchId)
 	}
 
-	return events, nil
+	return e, nil
 }
 
-func (m *MatchEnd) EventType() string {
+func (m *End) EventType() string {
 	return "match_end"
 }
 
-func (m *MatchEnd) getLastChecked(nickname string) time.Time {
+func (m *End) getLastChecked(nickname string) time.Time {
 	m.mu.RLock()
 	t, ok := m.timeCheck[nickname]
 	m.mu.RUnlock()
@@ -92,7 +93,7 @@ func (m *MatchEnd) getLastChecked(nickname string) time.Time {
 	return t
 }
 
-func (m *MatchEnd) setLastChecked(nickname string, t time.Time) {
+func (m *End) setLastChecked(nickname string, t time.Time) {
 	m.mu.Lock()
 	m.timeCheck[nickname] = t
 	m.mu.Unlock()

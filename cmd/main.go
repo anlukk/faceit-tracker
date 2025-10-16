@@ -11,6 +11,7 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/db"
 	"github.com/anlukk/faceit-tracker/internal/db/postgres"
+	"github.com/anlukk/faceit-tracker/internal/events"
 	"github.com/anlukk/faceit-tracker/internal/faceit"
 	"github.com/anlukk/faceit-tracker/internal/notifier"
 	"github.com/anlukk/faceit-tracker/internal/telegram"
@@ -75,7 +76,8 @@ func main() {
 	}
 
 	messenger := adapters.NewMessengerAdapter(telegramService.Bot())
-	n := notifier.New(dependencies, messenger)
+	eventRegistry := events.Registry(dependencies)
+	n := notifier.New(dependencies, messenger, *eventRegistry)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

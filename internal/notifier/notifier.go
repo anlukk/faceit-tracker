@@ -5,37 +5,30 @@ import (
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/notifier/cache"
-	"github.com/anlukk/faceit-tracker/internal/notifier/event_handlers"
+	"github.com/anlukk/faceit-tracker/internal/events"
 )
 
 const notificationTicker = 3 * time.Minute
 
 type Notifier struct {
-	deps          *core.Dependencies
-	messenger     Messenger
-	eventHandlers []EventHandlers
+	deps      *core.Dependencies
+	messenger Messenger
+
+	controller events.Controller
 }
 
-func New(deps *core.Dependencies, messenger Messenger) *Notifier {
-	n := &Notifier{
-		deps:          deps,
-		messenger:     messenger,
-		eventHandlers: []EventHandlers{},
-	}
+func New(
+	deps *core.Dependencies,
+	messenger Messenger,
+	controller events.Controller) *Notifier {
 
-	matchCache := cache.NewMatchCache()
-	n.RegisterEventHandlers(event_handlers.NewMatchEnd(deps, matchCache))
+	n := &Notifier{
+		deps:       deps,
+		messenger:  messenger,
+		controller: controller,
+	}
 
 	return n
-}
-
-func (n *Notifier) RegisterEventHandlers(eventHandlers EventHandlers) {
-	if eventHandlers == nil {
-		n.deps.Logger.Errorw("event handlers is nil")
-	}
-
-	n.eventHandlers = append(n.eventHandlers, eventHandlers)
 }
 
 func (n *Notifier) Run(ctx context.Context) {
@@ -47,21 +40,18 @@ func (n *Notifier) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			for _, eventHandler := range n.eventHandlers {
-				events, err := eventHandler.GetEvents(ctx)
+			collectEvents, err := n.controller.CollectEvents(ctx)
+			if err != nil {
+				n.deps.Logger.Errorw("failed to collect events", "error", err)
+				continue
+			}
+
+			for _, event := range collectEvents {
+				err := n.messenger.SendMessage(event.ChatID, event.Message)
 				if err != nil {
-					n.deps.Logger.Errorw("failed to get events", "error", err)
+					n.deps.Logger.Errorw("failed to send message", "error", err)
 					continue
 				}
-
-				for _, event := range events {
-					err := n.messenger.SendMessage(event.ChatID, event.Message)
-					if err != nil {
-						n.deps.Logger.Errorw("failed to send message", "error", err)
-						continue
-					}
-				}
-
 			}
 		}
 	}

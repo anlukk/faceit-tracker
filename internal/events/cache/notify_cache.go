@@ -2,17 +2,17 @@ package cache
 
 import "sync"
 
-type MatchCache struct {
+type NotifyCache struct {
 	notifiedMatches sync.Map
 }
 
-func NewMatchCache() *MatchCache {
-	return &MatchCache{
+func NewNotifyCache() *NotifyCache {
+	return &NotifyCache{
 		notifiedMatches: sync.Map{},
 	}
 }
 
-func (m *MatchCache) AlreadyNotified(nickname, matchID string) bool {
+func (m *NotifyCache) AlreadyNotified(nickname, matchID string) bool {
 	if nickname == "" || matchID == "" {
 		return false
 	}
@@ -25,7 +25,7 @@ func (m *MatchCache) AlreadyNotified(nickname, matchID string) bool {
 	return val == matchID
 }
 
-func (m *MatchCache) MarkNotified(nickname, matchID string) {
+func (m *NotifyCache) MarkNotified(nickname, matchID string) {
 	if nickname == "" || matchID == "" {
 		return
 	}
