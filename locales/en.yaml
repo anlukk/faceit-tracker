@@ -4,7 +4,7 @@ about: "Faceit Stats Bot is your go-to companion for tracking and analyzing your
 
 start_tracking_message: "Enter your Faceit username: "
 login_url: "https://redirect.me"
-subscriptions_command_message: "Here you can add, delete or view the list of players you are subscribed to:"
+subscriptions_command_message: "Follow players to keep track of them. Get full statistics for the last 10 matches."
 nickname_for_subscription: "Enter the nickname of the player you want to add: "
 nickname_for_unsubscription: "Enter the nickname of the player you want to delete: "
 success_subscription: "Player added successfully!"
@@ -37,9 +37,9 @@ start_command:
 subscriptions_command:
   inline_keyboard:
     keyboard_row_1:
-      add_player: "Add player ➕"
+      add_player: "➕ Follow"
     keyboard_row_2:
-      remove_player: "Delete player ➖"
+      remove_player: "➖ Unfollow"
     keyboard_row_4:
       list: "My subscription 📋"
     keyboard_row_5:

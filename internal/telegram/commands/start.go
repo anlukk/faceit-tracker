@@ -50,7 +50,7 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 		ChatID:      tu.ID(chatID),
 		MessageID:   messageID,
 		Text:        s.deps.Messages.SubsCommandMessage,
-		ReplyMarkup: BuildSubscriptionKeyboard(s.deps),
+		ReplyMarkup: BuildSubscriptionKeyboard(s.deps, chatID),
 		ParseMode:   telego.ModeHTML,
 	})
 	if err != nil {

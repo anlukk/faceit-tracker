@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -36,33 +39,53 @@ func BuildMainKeyboard(
 }
 
 func BuildSubscriptionKeyboard(
-	deps *core.Dependencies) *telego.InlineKeyboardMarkup {
-	return tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
+	deps *core.Dependencies,
+	chatID int64) *telego.InlineKeyboardMarkup {
+	ctx := context.Background()
+	subs, _ := deps.SubscriptionRepo.GetSubscriptionByChatID(ctx, chatID)
+
+	rows := make([][]telego.InlineKeyboardButton, 0)
+
+	rows = append(rows, tu.InlineKeyboardRow(
+		tu.InlineKeyboardButton(
+			deps.Messages.SubscriptionsCommand.
+				InlineKeyboard.KeyboardRow1.AddPlayer,
+		).WithCallbackData("add_player"),
+		tu.InlineKeyboardButton(
+			deps.Messages.SubscriptionsCommand.
+				InlineKeyboard.KeyboardRow2.RemovePlayer,
+		).WithCallbackData("remove_player"),
+	))
+
+	if len(subs) == 0 {
+		rows = append(rows, tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(
 				deps.Messages.SubscriptionsCommand.
-					InlineKeyboard.KeyboardRow1.AddPlayer).
-				WithCallbackData("add_player"),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(
-				deps.Messages.SubscriptionsCommand.
-					InlineKeyboard.KeyboardRow2.RemovePlayer).
-				WithCallbackData("remove_player"),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(
-				deps.Messages.SubscriptionsCommand.
-					InlineKeyboard.KeyboardRow4.List).
-				WithCallbackData("list"),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(
-				deps.Messages.SubscriptionsCommand.
-					InlineKeyboard.KeyboardRow5.Back).
-				WithCallbackData("back"),
-		),
-	)
+					InlineKeyboard.KeyboardRow5.Back,
+			).WithCallbackData("back")))
+	}
+
+	for _, sub := range subs {
+		rows = append(rows, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(fmt.Sprintf("%s", sub.Nickname)).
+				WithCallbackData(sub.Nickname),
+		))
+	}
+
+	if len(subs) >= 1 {
+		rows = append(rows,
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(
+					deps.Messages.SubscriptionsCommand.
+						InlineKeyboard.KeyboardRow5.Back,
+				).WithCallbackData("back"),
+			),
+		)
+	}
+
+	return &telego.InlineKeyboardMarkup{
+		InlineKeyboard: rows,
+	}
 }
 
 func BuildSettingsKeyboard(
