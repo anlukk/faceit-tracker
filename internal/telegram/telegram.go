@@ -136,13 +136,14 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataEqual("list"),
 	)
 
+	//TODO: fix
 	t.handlers.Handle(
 		t.commands.SearchPlayerCommand.PromptPlayerSearch,
-		th.TextEqual("/searchplayer"),
+		th.CommandEqual("searchplayer"),
 	)
 	t.handlers.Handle(
 		t.commands.SearchPlayerCommand.HandleUserMessage,
-		th.AnyMessage(),
+		commands.FindPlayerReplyMessage(),
 	)
 
 	return nil

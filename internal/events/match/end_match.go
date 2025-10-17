@@ -33,6 +33,7 @@ func NewMatchEnd(deps *core.Dependencies, cache *cache2.NotifyCache) *End {
 	}
 }
 
+// TODO: add cache invalidation to the production version
 func (m *End) GetEvents(ctx context.Context) ([]types.Event, error) {
 	var events []types.Event
 
@@ -49,6 +50,10 @@ func (m *End) GetEvents(ctx context.Context) ([]types.Event, error) {
 		go func() {
 			defer wg.Done()
 			for sub := range subsChannel {
+				if sub.UserSettings.NotificationsEnabled == false {
+					continue
+				}
+
 				lastChecked := m.getLastChecked(sub.Nickname)
 				if time.Since(lastChecked) < checkCooldown {
 					continue

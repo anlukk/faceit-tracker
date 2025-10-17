@@ -7,6 +7,7 @@ import (
 
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
+	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
@@ -20,29 +21,41 @@ func NewSearchPlayer(deps *core.Dependencies) *SearchPlayer {
 	}
 }
 
+// TODO: add i18n support
 func (s *SearchPlayer) PromptPlayerSearch(bot *telego.Bot, update telego.Update) {
-	userId := tu.ID(update.Message.Chat.ID)
+	chatID := tu.ID(update.Message.Chat.ID)
 
-	s.deps.Logger.Debugw(
-		"prompt player search",
-		"user_id", userId,
-	)
-
-	_, botErr := bot.SendMessage(tu.Message(userId, "Enter the player you want to find").
+	_, botErr := bot.SendMessage(tu.Message(chatID, "Enter the player you want to find").
 		WithReplyMarkup(tu.ForceReply()))
 	if botErr != nil {
 		s.deps.Logger.Errorw("bot error", "error", botErr)
 	}
+
+	if err := bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+	}); err != nil {
+		s.deps.Logger.Errorw("failed to answer callback", "error", err)
+	}
 }
 
+func FindPlayerReplyMessage() th.Predicate {
+	return func(update telego.Update) bool {
+		return update.Message != nil &&
+			update.Message.ReplyToMessage != nil &&
+			update.Message.ReplyToMessage.Text == "Enter the player you want to find"
+	}
+}
+
+// TODO: add i18n support
 func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	userId := tu.ID(update.Message.From.ID)
+	chatID := tu.ID(update.Message.Chat.ID)
+
 	userMessage := update.Message.Text
 	if strings.TrimSpace(userMessage) == "" {
-		_, err := bot.SendMessage(tu.Message(userId, "Please enter a valid nickname.").
+		_, err := bot.SendMessage(tu.Message(chatID, "Please enter a valid nickname.").
 			WithParseMode(telego.ModeHTML))
 		if err != nil {
 			s.deps.Logger.Errorw("send message error", "error", err)
@@ -53,7 +66,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 	response, err := s.deps.Faceit.GetPlayer(ctx, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(userId, "Error retrieving player data.").
+		_, sendErr := bot.SendMessage(tu.Message(chatID, "Error retrieving player data.").
 			WithParseMode(telego.ModeHTML))
 		if sendErr != nil {
 			s.deps.Logger.Errorw("send message error", "error", sendErr)
@@ -62,19 +75,9 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 	}
 
 	formattedResponse := formatSearchCommandResponse(&response)
-	_, err = bot.SendMessage(tu.Message(userId, formattedResponse).
-		WithParseMode(telego.ModeHTML))
+	_, err = bot.SendMessage(tu.Message(chatID, formattedResponse).WithParseMode(telego.ModeHTML))
 	if err != nil {
 		s.deps.Logger.Errorw("send message error", "error", err)
-		return
-	}
-
-	if userMessage == "cancel" {
-		_, err := bot.SendMessage(tu.Message(userId, "Canceled").
-			WithParseMode(telego.ModeHTML))
-		if err != nil {
-			s.deps.Logger.Errorw("send message error", "error", err)
-		}
 		return
 	}
 }

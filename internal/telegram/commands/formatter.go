@@ -8,7 +8,7 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 )
 
-// TODO: change to i18n
+// TODO: add i18n support
 func formatSearchCommandResponse(response *faceit.Player) string {
 	gamesStr := ""
 	for game, gameInfo := range response.Games {
@@ -20,7 +20,7 @@ func formatSearchCommandResponse(response *faceit.Player) string {
 		response.Nickname, response.Country, gamesStr, response.SteamNickname)
 }
 
-// TODO: change to i18n
+// TODO: add i18n support
 func formatSubscriptionsList(deps *core.Dependencies, subs []models.Subscription) string {
 	if len(subs) == 0 {
 		return deps.Messages.NoSubscriptions

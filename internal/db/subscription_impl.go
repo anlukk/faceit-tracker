@@ -105,7 +105,10 @@ func (s *SubscriptionDBImpl) GetSubscriptionByChatID(
 func (s *SubscriptionDBImpl) GetAllSubscription(
 	ctx context.Context) ([]models.Subscription, error) {
 	var subs []models.Subscription
-	err := s.db.WithContext(ctx).Find(&subs).Error
+	err := s.db.WithContext(ctx).
+		Preload("UserSettings").
+		Find(&subs).Error
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all subscribers: %w", err)
 	}

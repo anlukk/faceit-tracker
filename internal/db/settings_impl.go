@@ -17,7 +17,9 @@ func NewSettingsDBImpl(db *gorm.DB) *SettingsDBImpl {
 	return &SettingsDBImpl{db: db}
 }
 
-func (s *SettingsDBImpl) GetNotificationsEnabled(ctx context.Context, chatID int64) (bool, error) {
+func (s *SettingsDBImpl) GetNotificationsEnabled(
+	ctx context.Context,
+	chatID int64) (bool, error) {
 	var setting models.UserSettings
 	err := s.db.WithContext(ctx).
 		Where("chat_id = ?", chatID).
@@ -27,13 +29,13 @@ func (s *SettingsDBImpl) GetNotificationsEnabled(ctx context.Context, chatID int
 		err := s.db.WithContext(ctx).
 			Create(&models.UserSettings{
 				ChatID:               chatID,
-				NotificationsEnabled: true,
+				NotificationsEnabled: false,
 			}).Error
 		if err != nil {
 			return false, fmt.Errorf("failed to create new settings: %w", err)
 		}
 
-		return true, nil
+		return false, nil
 	}
 
 	if err != nil {
@@ -43,7 +45,9 @@ func (s *SettingsDBImpl) GetNotificationsEnabled(ctx context.Context, chatID int
 	return setting.NotificationsEnabled, nil
 }
 
-func (s *SettingsDBImpl) SetNotificationsEnabled(ctx context.Context, chatID int64, enabled bool) error {
+func (s *SettingsDBImpl) SetNotificationsEnabled(
+	ctx context.Context,
+	chatID int64, enabled bool) error {
 	var settings models.UserSettings
 	var count int64
 
@@ -81,7 +85,8 @@ func (s *SettingsDBImpl) SetNotificationsEnabled(ctx context.Context, chatID int
 	return err
 }
 
-func (s *SettingsDBImpl) GetAllWithNotificationsEnabled(ctx context.Context) ([]int64, error) {
+func (s *SettingsDBImpl) GetAllWithNotificationsEnabled(
+	ctx context.Context) ([]int64, error) {
 	var settings []models.UserSettings
 	err := s.db.
 		WithContext(ctx).
@@ -100,7 +105,9 @@ func (s *SettingsDBImpl) GetAllWithNotificationsEnabled(ctx context.Context) ([]
 	return chatIDs, nil
 }
 
-func (s *SettingsDBImpl) GetLanguage(ctx context.Context, chatID int64) string {
+func (s *SettingsDBImpl) GetLanguage(
+	ctx context.Context,
+	chatID int64) string {
 	var settings models.UserSettings
 	err := s.db.
 		WithContext(ctx).
@@ -114,7 +121,10 @@ func (s *SettingsDBImpl) GetLanguage(ctx context.Context, chatID int64) string {
 	return settings.Language
 }
 
-func (s *SettingsDBImpl) SetLanguage(ctx context.Context, chatID int64, language string) error {
+func (s *SettingsDBImpl) SetLanguage(
+	ctx context.Context,
+	chatID int64,
+	language string) error {
 	var settings models.UserSettings
 	err := s.db.
 		WithContext(ctx).

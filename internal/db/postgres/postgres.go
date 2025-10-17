@@ -51,8 +51,8 @@ func Close(db *gorm.DB) error {
 
 func autoMigrate(db *gorm.DB) error {
 	models := []interface{}{
-		&dbModels.Subscription{},
 		&dbModels.UserSettings{},
+		&dbModels.Subscription{},
 	}
 
 	for _, model := range models {

@@ -42,11 +42,6 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 	}
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
-
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
 	s.menu.SetActive(chatID, "options", messageID)
@@ -73,10 +68,6 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 	defer cancel()
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
 
 	chatID := msg.GetChat().ID
 	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
