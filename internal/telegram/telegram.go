@@ -136,6 +136,11 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataEqual("list"),
 	)
 
+	t.handlers.Handle(
+		t.commands.PlayerCard.HandlePlayerButton,
+		th.CallbackDataPrefix("player:"),
+	)
+
 	//TODO: fix
 	t.handlers.Handle(
 		t.commands.SearchPlayerCommand.PromptPlayerSearch,

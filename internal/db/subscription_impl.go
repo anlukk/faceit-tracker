@@ -85,7 +85,7 @@ func (s *SubscriptionDBImpl) IsSubscribed(
 	return count > 0, nil
 }
 
-func (s *SubscriptionDBImpl) GetSubscriptionByChatID(
+func (s *SubscriptionDBImpl) GetSubscriptionsByChatID(
 	ctx context.Context,
 	chatID int64) ([]models.Subscription, error) {
 	var subs []models.Subscription
@@ -114,4 +114,22 @@ func (s *SubscriptionDBImpl) GetAllSubscription(
 	}
 
 	return subs, nil
+}
+
+func (s *SubscriptionDBImpl) GetSubscriptionByChatID(
+	ctx context.Context,
+	chatID int64,
+	playerID string) (models.Subscription, error) {
+	var sub models.Subscription
+	err := s.db.
+		WithContext(ctx).
+		Where("chat_id = ? AND player_id = ?", chatID, playerID).
+		First(&sub).
+		Error
+
+	if err != nil {
+		return models.Subscription{}, fmt.Errorf("failed to get subscriber: %w", err)
+	}
+
+	return sub, nil
 }

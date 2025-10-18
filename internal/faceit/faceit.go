@@ -36,7 +36,7 @@ func NewClient(apiToken string) (*Client, error) {
 	}, nil
 }
 
-func (f *Client) GetPlayer(
+func (f *Client) GetPlayerByNickname(
 	ctx context.Context,
 	nickname string) (faceit3.Player, error) {
 	if nickname == "" {
@@ -256,4 +256,44 @@ func (f *Client) getRoundScore(ctx context.Context, matchID string) (int, int, e
 	t2, _ := strconv.Atoi(team2)
 
 	return t1, t2, nil
+}
+
+func (f *Client) GetStatForLastTenMatches(
+	ctx context.Context,
+	nickname string) ([]faceit3.MatchStats, error) {
+	if nickname == "" {
+		return nil, ErrEmptyNickname
+	}
+
+	playerID, err := f.GetPlayerIDByNickname(ctx, nickname)
+	if err != nil {
+		return nil, fmt.Errorf("get player id: %w", err)
+	}
+
+	history, _, err := f.client.
+		PlayersApi.
+		GetPlayerHistory(ctx, playerID, "cs2", &faceit3.PlayersApiGetPlayerHistoryOpts{
+			Limit: optional.NewInt32(10),
+		})
+	if err != nil {
+		return nil, fmt.Errorf("get player history: %w", err)
+	}
+
+	if len(history.Items) == 0 {
+		return nil, fmt.Errorf("player has no matches")
+	}
+
+	matches := make([]faceit3.MatchStats, 0, len(history.Items))
+
+	for _, item := range history.Items[:10] {
+		stat, _, err := f.client.MatchesApi.GetMatchStats(ctx, item.MatchId)
+		if err != nil {
+			return nil, fmt.Errorf("get match stats: %w", err)
+		}
+
+		matches = append(matches, stat)
+
+	}
+
+	return matches, nil
 }

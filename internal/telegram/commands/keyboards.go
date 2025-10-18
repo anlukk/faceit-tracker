@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
@@ -42,7 +41,7 @@ func BuildSubscriptionKeyboard(
 	deps *core.Dependencies,
 	chatID int64) *telego.InlineKeyboardMarkup {
 	ctx := context.Background()
-	subs, _ := deps.SubscriptionRepo.GetSubscriptionByChatID(ctx, chatID)
+	subs, _ := deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
 
 	rows := make([][]telego.InlineKeyboardButton, 0)
 
@@ -67,8 +66,8 @@ func BuildSubscriptionKeyboard(
 
 	for _, sub := range subs {
 		rows = append(rows, tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(fmt.Sprintf("%s", sub.Nickname)).
-				WithCallbackData(sub.Nickname),
+			tu.InlineKeyboardButton(sub.Nickname).
+				WithCallbackData("player:"+sub.Nickname),
 		))
 	}
 

@@ -11,7 +11,9 @@ type SubscriptionDB interface {
 	Unsubscribe(ctx context.Context, chatID int64, playerID string) error
 
 	IsSubscribed(ctx context.Context, chatID int64, playerID string) (bool, error)
-	GetSubscriptionByChatID(ctx context.Context, chatID int64) ([]models.Subscription, error)
+	GetSubscriptionsByChatID(ctx context.Context, chatID int64) ([]models.Subscription, error)
 
 	GetAllSubscription(ctx context.Context) ([]models.Subscription, error)
+
+	GetSubscriptionByChatID(ctx context.Context, chatID int64, playerID string) (models.Subscription, error)
 }

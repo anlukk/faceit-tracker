@@ -9,6 +9,7 @@ type BotCommands struct {
 	StartCommand        *Start
 	SearchPlayerCommand *SearchPlayer
 	Subscription        *Subscription
+	PlayerCard          *PlayerCard
 }
 
 func NewBotCommands(
@@ -18,5 +19,6 @@ func NewBotCommands(
 		StartCommand:        NewStart(deps, menu),
 		SearchPlayerCommand: NewSearchPlayer(deps),
 		Subscription:        NewSubscription(deps),
+		PlayerCard:          NewPlayerCard(deps),
 	}
 }

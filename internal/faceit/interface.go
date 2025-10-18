@@ -7,7 +7,7 @@ import (
 )
 
 type FaceitClient interface {
-	GetPlayer(
+	GetPlayerByNickname(
 		ctx context.Context,
 		nickname string) (faceit3.Player, error)
 	GetPlayerIDByNickname(
@@ -22,4 +22,8 @@ type FaceitClient interface {
 	GetFinishMatchResult(
 		ctx context.Context,
 		nickname string) (*FinishMatchResult, error)
+
+	GetStatForLastTenMatches(
+		ctx context.Context,
+		nickname string) ([]faceit3.MatchStats, error)
 }

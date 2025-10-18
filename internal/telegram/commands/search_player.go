@@ -63,7 +63,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 		return
 	}
 
-	response, err := s.deps.Faceit.GetPlayer(ctx, userMessage)
+	response, err := s.deps.Faceit.GetPlayerByNickname(ctx, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
 		_, sendErr := bot.SendMessage(tu.Message(chatID, "Error retrieving player data.").
