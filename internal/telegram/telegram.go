@@ -141,6 +141,15 @@ func (t *Telegram) registerCommands() error {
 		th.CallbackDataPrefix("player:"),
 	)
 
+	t.handlers.Handle(
+		t.commands.Subscription.HandleNewPersonalSubButton,
+		th.CallbackDataEqual("create_new_personal_sub"),
+	)
+	t.handlers.Handle(
+		t.commands.Subscription.HandleNewPersonalSubReply,
+		commands.IsNewPersonalSubReplyMessage(),
+	)
+
 	//TODO: fix
 	t.handlers.Handle(
 		t.commands.SearchPlayerCommand.PromptPlayerSearch,

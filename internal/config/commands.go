@@ -55,9 +55,9 @@ type BotMessages struct {
 				RemovePlayer string `yaml:"remove_player"`
 			} `yaml:"keyboard_row_2"`
 
-			KeyboardRow4 struct {
-				List string `yaml:"list"`
-			} `yaml:"keyboard_row_4"`
+			KeyboardRow3 struct {
+				NewPersonalSub string `yaml:"new_personal_sub"`
+			} `yaml:"keyboard_row_3"`
 
 			KeyboardRow5 struct {
 				Back string `yaml:"back"`

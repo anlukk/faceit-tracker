@@ -33,10 +33,6 @@ func (s *Subscription) sendForceReply(bot *telego.Bot, chatID int64, text string
 
 func (s *Subscription) HandleSubscribeButton(bot *telego.Bot, update telego.Update) {
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
 
 	chatID := msg.GetChat().ID
 	if err := s.sendForceReply(bot, chatID, s.deps.Messages.NicknameForSubs); err != nil {
@@ -126,16 +122,16 @@ func IsSubscriptionReplyMessage() th.Predicate {
 }
 
 func (s *Subscription) HandleUnsubscribeButton(bot *telego.Bot, update telego.Update) {
-	if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
-		s.deps.Logger.Errorw("invalid callback query", "update", update)
-		return
-	}
+	//if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
+	//	s.deps.Logger.Errorw("invalid callback query", "update", update)
+	//	return
+	//}
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
+	//if msg == nil {
+	//	s.deps.Logger.Errorw("message is nil")
+	//	return
+	//}
 
 	chatID := msg.GetChat().ID
 	userId := tu.ID(chatID)
@@ -222,16 +218,16 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
-		s.deps.Logger.Errorw("invalid callback query", "update", update)
-		return
-	}
+	//if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
+	//	s.deps.Logger.Errorw("invalid callback query", "update", update)
+	//	return
+	//}
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
+	//if msg == nil {
+	//	s.deps.Logger.Errorw("message is nil")
+	//	return
+	//}
 
 	chatID := msg.GetChat().ID
 	subs, err := s.deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
@@ -253,5 +249,62 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 	if err := bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID)); err != nil {
 		s.deps.Logger.Errorw("failed to answer callback", "error", err)
 		return
+	}
+}
+
+func (s *Subscription) HandleNewPersonalSubButton(bot *telego.Bot, update telego.Update) {
+	msg := update.CallbackQuery.Message
+
+	chatID := msg.GetChat().ID
+
+	//TODO: add i18n support
+	if err := s.sendForceReply(bot, chatID, "enter the new main player"); err != nil {
+		s.deps.Logger.Errorw("failed to send message", "error", err)
+		return
+	}
+
+	if err := bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID)); err != nil {
+		s.deps.Logger.Errorw("failed to answer callback", "error", err)
+		return
+	}
+}
+
+func (s *Subscription) HandleNewPersonalSubReply(bot *telego.Bot, update telego.Update) {
+	chatID := update.Message.Chat.ID
+
+	telegoChatID := tu.ID(chatID)
+
+	userMessage := strings.TrimSpace(update.Message.Text)
+	if userMessage == "" {
+		_, err := bot.SendMessage(tu.Message(telegoChatID, "Please enter a valid nickname.").
+			WithParseMode(telego.ModeHTML))
+		if err != nil {
+			s.deps.Logger.Errorw("send message error", "error", err)
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID)
+	if err != nil {
+		s.deps.Logger.Errorw("failed to set personal sub", "error", err)
+		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Error setting personal sub. Please try again."))
+		if sendErr != nil {
+			s.deps.Logger.Errorw("send message error", "error", sendErr)
+		}
+		return
+	}
+
+	_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Successfully set personal sub."))
+	if sendErr != nil {
+		s.deps.Logger.Errorw("send message error", "error", sendErr)
+	}
+}
+
+func IsNewPersonalSubReplyMessage() th.Predicate {
+	return func(update telego.Update) bool {
+		return update.Message != nil &&
+			update.Message.ReplyToMessage != nil &&
+			update.Message.ReplyToMessage.Text == "enter the new main player"
 	}
 }

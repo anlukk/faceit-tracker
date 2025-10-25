@@ -14,4 +14,6 @@ type Dependencies struct {
 	Faceit           faceit.FaceitClient
 	SettingsRepo     db.SettingsDB
 	SubscriptionRepo db.SubscriptionDB
+
+	PersonalSubRepo db.PersonalSubDB
 }

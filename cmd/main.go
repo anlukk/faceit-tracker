@@ -10,7 +10,6 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/config"
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/anlukk/faceit-tracker/internal/db"
-	"github.com/anlukk/faceit-tracker/internal/db/postgres"
 	"github.com/anlukk/faceit-tracker/internal/events"
 	"github.com/anlukk/faceit-tracker/internal/faceit"
 	"github.com/anlukk/faceit-tracker/internal/notifier"
@@ -45,13 +44,13 @@ func main() {
 			"error", err)
 	}
 
-	dbConn, err := postgres.NewDb(cfg)
+	dbConn, err := db.New(cfg)
 	if err != nil {
 		sugar.Fatalw("failed to initialize postgres",
 			"error", err)
 	}
 	defer func() {
-		if err := postgres.Close(dbConn); err != nil {
+		if err := db.Close(dbConn); err != nil {
 			sugar.Errorw("failed to close postgres connection",
 				"error", err)
 		}
@@ -64,6 +63,7 @@ func main() {
 		Faceit:           faceitClient,
 		SettingsRepo:     db.NewSettingsDBImpl(dbConn),
 		SubscriptionRepo: db.NewSubscriptionDBImpl(dbConn),
+		PersonalSubRepo:  db.NewPersonalSubDBImpl(dbConn),
 	}
 
 	telegramService, err := telegram.NewTelegram(dependencies)

@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"context"
-
 	"github.com/anlukk/faceit-tracker/internal/core"
+	"github.com/anlukk/faceit-tracker/internal/db/models"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -39,11 +38,21 @@ func BuildMainKeyboard(
 
 func BuildSubscriptionKeyboard(
 	deps *core.Dependencies,
-	chatID int64) *telego.InlineKeyboardMarkup {
-	ctx := context.Background()
-	subs, _ := deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
-
+	subs []models.Subscription,
+	mainPlayerID string) *telego.InlineKeyboardMarkup {
 	rows := make([][]telego.InlineKeyboardButton, 0)
+
+	for _, sub := range subs {
+		nickname := sub.Nickname
+		if sub.PlayerID == mainPlayerID {
+			nickname += " ⭐"
+		}
+
+		rows = append(rows, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(sub.Nickname).
+				WithCallbackData("player:"+nickname),
+		))
+	}
 
 	rows = append(rows, tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(
@@ -54,33 +63,18 @@ func BuildSubscriptionKeyboard(
 			deps.Messages.SubscriptionsCommand.
 				InlineKeyboard.KeyboardRow2.RemovePlayer,
 		).WithCallbackData("remove_player"),
-	))
+	),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(
+				deps.Messages.SubscriptionsCommand.
+					InlineKeyboard.KeyboardRow3.NewPersonalSub,
+			).WithCallbackData("create_new_personal_sub"),
 
-	if len(subs) == 0 {
-		rows = append(rows, tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(
 				deps.Messages.SubscriptionsCommand.
 					InlineKeyboard.KeyboardRow5.Back,
-			).WithCallbackData("back")))
-	}
-
-	for _, sub := range subs {
-		rows = append(rows, tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(sub.Nickname).
-				WithCallbackData("player:"+sub.Nickname),
+			).WithCallbackData("back"),
 		))
-	}
-
-	if len(subs) >= 1 {
-		rows = append(rows,
-			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(
-					deps.Messages.SubscriptionsCommand.
-						InlineKeyboard.KeyboardRow5.Back,
-				).WithCallbackData("back"),
-			),
-		)
-	}
 
 	return &telego.InlineKeyboardMarkup{
 		InlineKeyboard: rows,

@@ -1,4 +1,4 @@
-package postgres
+package db
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func NewDb(cfg *config.Config) (*gorm.DB, error) {
+func New(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode,
@@ -53,6 +53,7 @@ func autoMigrate(db *gorm.DB) error {
 	models := []interface{}{
 		&dbModels.UserSettings{},
 		&dbModels.Subscription{},
+		&dbModels.PersonalSub{},
 	}
 
 	for _, model := range models {

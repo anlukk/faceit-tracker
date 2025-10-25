@@ -1,10 +1,10 @@
-description: "Hi! I will be your assistant in statistics from Faceit. Please, choose an option:"
+description: "Assemble your team and choose a key player to track detailed statistics."
 
 about: "Faceit Stats Bot is your go-to companion for tracking and analyzing your gaming performance on Faceit. Simply enter your username, and the bot will provide detailed statistics, including match history, win/loss ratios, Elo rating, and other key performance indicators. Stay up to date with your progress and improve your gameplay with personalized insights delivered straight to your Telegram chat."
 
 start_tracking_message: "Enter your Faceit username: "
 login_url: "https://redirect.me"
-subscriptions_command_message: "Follow players to keep track of them. Get full statistics for the last 10 matches."
+subscriptions_command_message: "Add the player you want to receive news about (max 5)."
 nickname_for_subscription: "Enter the nickname of the player you want to add: "
 nickname_for_unsubscription: "Enter the nickname of the player you want to delete: "
 success_subscription: "Player added successfully!"
@@ -28,22 +28,23 @@ team: "Team: "
 start_command:
   inline_keyboard:
     keyboard_row_1:
-      options: "Subscriptions 📋"
+      options: "👥 Team"
     keyboard_row_2:
-      settings: "Settings ⚙️"
+      settings: "⚙ Settings️"
     keyboard_row_4:
       github: "GitHub"
 
 subscriptions_command:
   inline_keyboard:
     keyboard_row_1:
-      add_player: "➕ Follow"
+      add_player: "➕ Add"
     keyboard_row_2:
-      remove_player: "➖ Unfollow"
-    keyboard_row_4:
-      list: "My subscription 📋"
+      remove_player: "➖ Delete"
+    keyboard_row_3:
+      new_personal_sub: "🌟 Main player"
+
     keyboard_row_5:
-      back: "⬅️ Back"
+      back: "«️ Back to menu"
 
 settings_command:
   inline_keyboard:
