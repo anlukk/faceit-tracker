@@ -32,9 +32,7 @@ func (s *Subscription) sendForceReply(bot *telego.Bot, chatID int64, text string
 }
 
 func (s *Subscription) HandleSubscribeButton(bot *telego.Bot, update telego.Update) {
-	msg := update.CallbackQuery.Message
-
-	chatID := msg.GetChat().ID
+	chatID := update.CallbackQuery.Message.GetChat().ID
 	if err := s.sendForceReply(bot, chatID, s.deps.Messages.NicknameForSubs); err != nil {
 		s.deps.Logger.Errorw("failed to send message", "error", err)
 		return
@@ -49,7 +47,7 @@ func (s *Subscription) HandleSubscribeButton(bot *telego.Bot, update telego.Upda
 
 // TODO: add i18n support
 func (s *Subscription) HandleSubscriptionNicknameReply(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout) //TODO: remove context
 	defer cancel()
 
 	userId := tu.ID(update.Message.From.ID)
@@ -122,28 +120,17 @@ func IsSubscriptionReplyMessage() th.Predicate {
 }
 
 func (s *Subscription) HandleUnsubscribeButton(bot *telego.Bot, update telego.Update) {
-	//if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
-	//	s.deps.Logger.Errorw("invalid callback query", "update", update)
-	//	return
-	//}
-
-	msg := update.CallbackQuery.Message
-	//if msg == nil {
-	//	s.deps.Logger.Errorw("message is nil")
-	//	return
-	//}
-
-	chatID := msg.GetChat().ID
+	chatID := update.CallbackQuery.Message.GetChat().ID
 	userId := tu.ID(chatID)
 
-	msg, err := bot.SendMessage(tu.Message(userId, s.deps.Messages.NicknameForUnsubs).
+	_, err := bot.SendMessage(tu.Message(userId, s.deps.Messages.NicknameForUnsubs).
 		WithReplyMarkup(tu.ForceReply()))
 	if err != nil {
 		s.deps.Logger.Errorw("failed to send message", "error", err)
 		return
 	}
 
-	if err := bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
+	if err = bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 	}); err != nil {
 		s.deps.Logger.Errorw("failed to answer callback", "error", err)
@@ -218,16 +205,7 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//if update.CallbackQuery == nil || update.CallbackQuery.Message == nil {
-	//	s.deps.Logger.Errorw("invalid callback query", "update", update)
-	//	return
-	//}
-
 	msg := update.CallbackQuery.Message
-	//if msg == nil {
-	//	s.deps.Logger.Errorw("message is nil")
-	//	return
-	//}
 
 	chatID := msg.GetChat().ID
 	subs, err := s.deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
@@ -253,9 +231,7 @@ func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update tel
 }
 
 func (s *Subscription) HandleNewPersonalSubButton(bot *telego.Bot, update telego.Update) {
-	msg := update.CallbackQuery.Message
-
-	chatID := msg.GetChat().ID
+	chatID := update.CallbackQuery.Message.GetChat().ID
 
 	//TODO: add i18n support
 	if err := s.sendForceReply(bot, chatID, "enter the new main player"); err != nil {

@@ -48,7 +48,7 @@ func FindPlayerReplyMessage() th.Predicate {
 
 // TODO: add i18n support
 func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //TODO: remove context
 	defer cancel()
 
 	chatID := tu.ID(update.Message.Chat.ID)

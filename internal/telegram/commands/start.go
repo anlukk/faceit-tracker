@@ -39,18 +39,13 @@ func (s *Start) StartCommand(bot *telego.Bot, update telego.Update) {
 
 // TODO: Move everything related to subtitles to a separate file (separate the logic)
 func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Update) {
-	if update.CallbackQuery == nil {
-		s.deps.Logger.Errorw("callback query is nil")
-		return
-	}
-
 	msg := update.CallbackQuery.Message
 	chatID := msg.GetChat().ID
 	messageID := msg.GetMessageID()
 
 	s.menu.SetActive(chatID, "options", messageID)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //TODO: remove context
 	defer cancel()
 
 	personalSub, err := s.deps.PersonalSubRepo.GetPersonalSub(ctx, chatID)
@@ -65,12 +60,6 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 		return
 	}
 
-	//var mainPlayerID string
-	//if personalSub != nil {
-	//	mainPlayerID = personalSub.PlayerID
-	//} else {
-	//	mainPlayerID = ""
-	//}
 	var mainNickname string
 	if personalSub != nil {
 		mainNickname = personalSub.Nickname
@@ -96,28 +85,16 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 }
 
 func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //TODO: remove context
 	defer cancel()
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
-
 	chatID := msg.GetChat().ID
-
 	personalSub, err := s.deps.PersonalSubRepo.GetPersonalSub(ctx, chatID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		s.deps.Logger.Errorw("failed to get personal sub", "error", err)
 		return
 	}
-
-	//err = s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID)
-	//if err != nil {
-	//	s.deps.Logger.Errorw("failed to set notifications status", "error", err)
-	//	return
-	//}
 
 	subs, err := s.deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
 	if err != nil {
@@ -125,12 +102,6 @@ func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.
 		return
 	}
 
-	//var mainPlayerID string
-	//if personalSub != nil {
-	//	mainPlayerID = personalSub.PlayerID
-	//} else {
-	//	mainPlayerID = ""
-	//}
 	var mainNickname string
 	if personalSub != nil {
 		mainNickname = personalSub.Nickname
@@ -159,7 +130,7 @@ func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.
 }
 
 func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //TODO: remove context
 	defer cancel()
 
 	msg := update.CallbackQuery.Message
@@ -192,15 +163,10 @@ func (s *Start) HandleSettingsMenuCallback(bot *telego.Bot, update telego.Update
 }
 
 func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //TODO: remove context
 	defer cancel()
 
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
-
 	chatID := msg.GetChat().ID
 	current, err := s.deps.SettingsRepo.GetNotificationsEnabled(ctx, chatID)
 	if err != nil {
@@ -237,17 +203,10 @@ func (s *Start) HandleNotificationToggleCallback(bot *telego.Bot, update telego.
 
 func (s *Start) HandleBackCallback(bot *telego.Bot, update telego.Update) {
 	msg := update.CallbackQuery.Message
-	if msg == nil {
-		s.deps.Logger.Errorw("message is nil")
-		return
-	}
-
-	chatID := msg.GetChat().ID
-	messageID := msg.GetMessageID()
 
 	_, err := bot.EditMessageText(&telego.EditMessageTextParams{
-		ChatID:      tu.ID(chatID),
-		MessageID:   messageID,
+		ChatID:      tu.ID(msg.GetChat().ID),
+		MessageID:   msg.GetMessageID(),
 		Text:        s.deps.Messages.Description,
 		ReplyMarkup: BuildMainKeyboard(s.deps),
 	})
