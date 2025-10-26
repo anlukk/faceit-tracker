@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/anlukk/faceit-tracker/internal/db/models"
@@ -33,24 +33,33 @@ func (p *PersonalSubDBImpl) GetPersonalSub(
 	return &personalSub, nil
 }
 
+// TODO: refactor
 func (p *PersonalSubDBImpl) SetPersonalSub(
 	ctx context.Context,
-	chatID int64) error {
+	chatID int64,
+	nickname string) error {
 
-	err := p.db.
+	var existing models.PersonalSub
+	result := p.db.
 		WithContext(ctx).
 		Where("chat_id = ?", chatID).
-		Delete(&models.PersonalSub{}).
-		Error
-	if err != nil {
-		return fmt.Errorf("failed to delete personal sub: %w", err)
+		First(&existing)
+
+	if result.Error == nil {
+		return p.db.
+			WithContext(ctx).
+			Where("chat_id = ?", chatID).
+			Delete(&models.PersonalSub{}).Error
 	}
 
-	c := p.db.WithContext(ctx).Create(&models.PersonalSub{
-		ChatID: chatID,
-		//PlayerID:  playerID,
-		LastCheck: time.Now(),
-	}).Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		newSub := models.PersonalSub{
+			ChatID:    chatID,
+			Nickname:  nickname,
+			LastCheck: time.Now(),
+		}
+		return p.db.WithContext(ctx).Create(&newSub).Error
+	}
 
-	return c
+	return result.Error
 }

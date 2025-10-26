@@ -65,18 +65,24 @@ func (s *Start) HandleSubscriptionMenuCallback(bot *telego.Bot, update telego.Up
 		return
 	}
 
-	var mainPlayerID string
+	//var mainPlayerID string
+	//if personalSub != nil {
+	//	mainPlayerID = personalSub.PlayerID
+	//} else {
+	//	mainPlayerID = ""
+	//}
+	var mainNickname string
 	if personalSub != nil {
-		mainPlayerID = personalSub.PlayerID
+		mainNickname = personalSub.Nickname
 	} else {
-		mainPlayerID = ""
+		mainNickname = ""
 	}
 
 	_, err = bot.EditMessageText(&telego.EditMessageTextParams{
 		ChatID:      tu.ID(chatID),
 		MessageID:   messageID,
 		Text:        s.deps.Messages.SubsCommandMessage,
-		ReplyMarkup: BuildSubscriptionKeyboard(s.deps, subs, mainPlayerID),
+		ReplyMarkup: BuildSubscriptionKeyboard(s.deps, subs, mainNickname),
 		ParseMode:   telego.ModeHTML,
 	})
 	if err != nil {
@@ -107,11 +113,11 @@ func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.
 		return
 	}
 
-	err = s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID)
-	if err != nil {
-		s.deps.Logger.Errorw("failed to set notifications status", "error", err)
-		return
-	}
+	//err = s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID)
+	//if err != nil {
+	//	s.deps.Logger.Errorw("failed to set notifications status", "error", err)
+	//	return
+	//}
 
 	subs, err := s.deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
 	if err != nil {
@@ -119,11 +125,17 @@ func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.
 		return
 	}
 
-	var mainPlayerID string
+	//var mainPlayerID string
+	//if personalSub != nil {
+	//	mainPlayerID = personalSub.PlayerID
+	//} else {
+	//	mainPlayerID = ""
+	//}
+	var mainNickname string
 	if personalSub != nil {
-		mainPlayerID = personalSub.PlayerID
+		mainNickname = personalSub.Nickname
 	} else {
-		mainPlayerID = ""
+		mainNickname = ""
 	}
 
 	messageID := msg.GetMessageID()
@@ -133,7 +145,7 @@ func (s *Start) HandleSubscriptionToggleCallback(bot *telego.Bot, update telego.
 		ChatID:      tu.ID(chatID),
 		MessageID:   messageID,
 		Text:        s.deps.Messages.SettingsCommandMessage,
-		ReplyMarkup: BuildSubscriptionKeyboard(s.deps, subs, mainPlayerID),
+		ReplyMarkup: BuildSubscriptionKeyboard(s.deps, subs, mainNickname),
 		ParseMode:   telego.ModeHTML,
 	})
 	if err != nil {

@@ -39,18 +39,18 @@ func BuildMainKeyboard(
 func BuildSubscriptionKeyboard(
 	deps *core.Dependencies,
 	subs []models.Subscription,
-	mainPlayerID string) *telego.InlineKeyboardMarkup {
+	mainNickname string) *telego.InlineKeyboardMarkup {
 	rows := make([][]telego.InlineKeyboardButton, 0)
 
 	for _, sub := range subs {
 		nickname := sub.Nickname
-		if sub.PlayerID == mainPlayerID {
+		if sub.Nickname == mainNickname {
 			nickname += " ⭐"
 		}
 
 		rows = append(rows, tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(sub.Nickname).
-				WithCallbackData("player:"+nickname),
+			tu.InlineKeyboardButton(nickname).
+				WithCallbackData("player:"+sub.Nickname),
 		))
 	}
 
@@ -113,15 +113,15 @@ func BuildSettingsKeyboard(
 	)
 }
 
-func BuildLanguageKeyboard() *telego.InlineKeyboardMarkup {
-	return tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("English").
-				WithCallbackData("language:en"),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Russian").
-				WithCallbackData("language:ru"),
-		),
-	)
-}
+//func BuildLanguageKeyboard() *telego.InlineKeyboardMarkup {
+//	return tu.InlineKeyboard(
+//		tu.InlineKeyboardRow(
+//			tu.InlineKeyboardButton("English").
+//				WithCallbackData("language:en"),
+//		),
+//		tu.InlineKeyboardRow(
+//			tu.InlineKeyboardButton("Russian").
+//				WithCallbackData("language:ru"),
+//		),
+//	)
+//}

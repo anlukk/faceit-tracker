@@ -285,7 +285,7 @@ func (s *Subscription) HandleNewPersonalSubReply(bot *telego.Bot, update telego.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	err := s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID)
+	err := s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID, userMessage)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to set personal sub", "error", err)
 		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Error setting personal sub. Please try again."))
