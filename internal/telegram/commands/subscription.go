@@ -9,11 +9,10 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/core"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
-	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 const (
-	timeout = 10 * time.Second
+	customCtxTimeOutForSubscription = 10 * time.Second
 )
 
 type Subscription struct {
@@ -26,89 +25,31 @@ func NewSubscription(deps *core.Dependencies) *Subscription {
 	}
 }
 
-func (s *Subscription) sendForceReply(bot *telego.Bot, chatID int64, text string) error {
-	_, err := bot.SendMessage(tu.Message(tu.ID(chatID), text).WithReplyMarkup(tu.ForceReply()))
-	return err
-}
-
 func (s *Subscription) HandleSubscribeButton(bot *telego.Bot, update telego.Update) {
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	if err := s.sendForceReply(bot, chatID, s.deps.Messages.NicknameForSubs); err != nil {
-		s.deps.Logger.Errorw("failed to send message", "error", err)
-		return
-	}
-
-	if err := bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-	}); err != nil {
-		s.deps.Logger.Errorw("failed to answer callback", "error", err)
-	}
+	callbackQueryID := update.CallbackQuery.Message.GetChat().ID
+	sendForceReply(bot, callbackQueryID, s.deps.Messages.NicknameForSubs, s.deps.Logger)
+	answerCallback(bot, update.CallbackQuery.ID, s.deps.Logger)
 }
 
-// TODO: add i18n support
 func (s *Subscription) HandleSubscriptionNicknameReply(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout) //TODO: remove context
+	ctx, cancel := context.WithTimeout(s.deps.Ctx, customCtxTimeOutForSubscription)
 	defer cancel()
 
-	userId := tu.ID(update.Message.From.ID)
-	userMessage := strings.TrimSpace(update.Message.Text)
-	if userMessage == "" {
-		_, err := bot.SendMessage(tu.Message(userId, "Please enter a valid nickname.").
-			WithParseMode(telego.ModeHTML),
-		)
-		if err != nil {
-			s.deps.Logger.Errorw("send message error", "error", err)
-		}
-		return
-	}
-
-	playerId, err := s.deps.Faceit.GetPlayerIDByNickname(ctx, userMessage)
+	nickname := strings.TrimSpace(update.Message.Text)
+	playerId, err := s.deps.Faceit.GetPlayerIDByNickname(ctx, nickname)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(userId, "Error fetching data from FACEIT API.").
-			WithParseMode(telego.ModeHTML),
-		)
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
-		return
 	}
 
-	s.deps.Logger.Debugw("get user", "id", userId)
-	s.deps.Logger.Infof("Player ID: %s", playerId)
-
-	chatID := update.Message.Chat.ID
-
-	exists, err := s.deps.SubscriptionRepo.IsSubscribed(ctx, chatID, playerId)
-	if err != nil {
-		s.deps.Logger.Errorw("check subscription failed: %w", err)
-	}
-
-	if exists {
-		//_, sendErr := bot.SendMessage(tu.Message(userId,
-		//	fmt.Sprintf(s.deps.Messages.AlreadySubscribed, userMessage)).
-		//	WithParseMode(telego.ModeHTML),
-		//)
-	}
-
-	err = s.deps.SubscriptionRepo.Subscribe(ctx, chatID, playerId, userMessage)
+	telegramChatID := update.Message.Chat.ID
+	err = s.deps.SubscriptionRepo.Subscribe(ctx, telegramChatID, playerId, nickname)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to subscribe", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(userId,
-			fmt.Sprintf(s.deps.Messages.FailedSubs+" "+err.Error())).
-			WithParseMode(telego.ModeHTML),
-		)
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
+		reply(bot, telegramChatID, fmt.Sprintf(s.deps.Messages.FailedSubs+" "+err.Error()), s.deps.Logger)
 		return
 	}
 
-	_, botErr := bot.SendMessage(tu.Message(userId, s.deps.Messages.SuccessSubs).
-		WithParseMode(telego.ModeHTML))
-	if botErr != nil {
-		s.deps.Logger.Errorw("bot error", "error", botErr)
-	}
+	reply(bot, telegramChatID, s.deps.Messages.SuccessSubs, s.deps.Logger)
 }
 
 func IsSubscriptionReplyMessage() th.Predicate {
@@ -120,77 +61,29 @@ func IsSubscriptionReplyMessage() th.Predicate {
 }
 
 func (s *Subscription) HandleUnsubscribeButton(bot *telego.Bot, update telego.Update) {
-	chatID := update.CallbackQuery.Message.GetChat().ID
-	userId := tu.ID(chatID)
-
-	_, err := bot.SendMessage(tu.Message(userId, s.deps.Messages.NicknameForUnsubs).
-		WithReplyMarkup(tu.ForceReply()))
-	if err != nil {
-		s.deps.Logger.Errorw("failed to send message", "error", err)
-		return
-	}
-
-	if err = bot.AnswerCallbackQuery(&telego.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-	}); err != nil {
-		s.deps.Logger.Errorw("failed to answer callback", "error", err)
-	}
+	callbackQueryID := update.CallbackQuery.Message.GetChat().ID
+	sendForceReply(bot, callbackQueryID, s.deps.Messages.NicknameForUnsubs, s.deps.Logger)
+	answerCallback(bot, update.CallbackQuery.ID, s.deps.Logger)
 }
 
-// TODO: add i18n support
 func (s *Subscription) HandleUnsubscriptionNicknameReply(bot *telego.Bot, update telego.Update) {
-	chatID := update.Message.Chat.ID
-	telegoChatID := tu.ID(chatID)
-
-	userMessage := strings.TrimSpace(update.Message.Text)
-	if userMessage == "" {
-		_, err := bot.SendMessage(tu.Message(telegoChatID, "Please enter a valid nickname.").
-			WithParseMode(telego.ModeHTML))
-		if err != nil {
-			s.deps.Logger.Errorw("send message error", "error", err)
-		}
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(s.deps.Ctx, customCtxTimeOutForSubscription)
 	defer cancel()
 
-	playerId, err := s.deps.Faceit.GetPlayerIDByNickname(ctx, userMessage)
+	nickname := strings.TrimSpace(update.Message.Text)
+	playerId, err := s.deps.Faceit.GetPlayerIDByNickname(ctx, nickname)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user", "error", err)
 	}
 
-	isSubscribed, err := s.deps.SubscriptionRepo.IsSubscribed(ctx, chatID, playerId)
-	if err != nil {
-		s.deps.Logger.Errorw("failed to check subscription", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Error checking subscription status."))
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
-		return
-	}
-
-	if !isSubscribed {
-		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, fmt.Sprintf(s.deps.Messages.NotSubscribed, userMessage)))
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
-		return
-	}
-
-	err = s.deps.SubscriptionRepo.Unsubscribe(ctx, chatID, playerId)
+	telegramChatID := update.Message.Chat.ID
+	err = s.deps.SubscriptionRepo.Unsubscribe(ctx, telegramChatID, playerId)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to unsubscribe", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Failed to unsubscribe. Please try again.").
-			WithParseMode(telego.ModeHTML))
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
-		return
+		reply(bot, telegramChatID, fmt.Sprintf(s.deps.Messages.FailedSubs+" "+err.Error()), s.deps.Logger)
 	}
 
-	_, botErr := bot.SendMessage(tu.Message(telegoChatID, s.deps.Messages.SuccessUnsubs))
-	if botErr != nil {
-		s.deps.Logger.Errorw("bot error", "error", botErr)
-	}
+	reply(bot, telegramChatID, s.deps.Messages.SuccessUnsubs, s.deps.Logger)
 }
 
 func IsUnsubscriptionReplyMessage() th.Predicate {
@@ -201,80 +94,26 @@ func IsUnsubscriptionReplyMessage() th.Predicate {
 	}
 }
 
-func (s *Subscription) HandleSubscriptionsListButton(bot *telego.Bot, update telego.Update) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	msg := update.CallbackQuery.Message
-
-	chatID := msg.GetChat().ID
-	subs, err := s.deps.SubscriptionRepo.GetSubscriptionsByChatID(ctx, chatID)
-	if err != nil {
-		s.deps.Logger.Errorw("failed to get subscriber", "error", err)
-		_, err = bot.SendMessage(tu.Message(tu.ID(chatID), fmt.Sprintf(s.deps.Messages.NotSubscribed+err.Error())).
-			WithParseMode(telego.ModeHTML))
-		if err != nil {
-			s.deps.Logger.Errorw("send message error", "error", err)
-		}
-	}
-
-	_, err = bot.SendMessage(tu.Message(tu.ID(chatID), formatSubscriptionsList(s.deps, subs)).
-		WithParseMode(telego.ModeHTML))
-	if err != nil {
-		s.deps.Logger.Errorw("failed to send message", "error", err)
-	}
-
-	if err := bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID)); err != nil {
-		s.deps.Logger.Errorw("failed to answer callback", "error", err)
-		return
-	}
-}
-
 func (s *Subscription) HandleNewPersonalSubButton(bot *telego.Bot, update telego.Update) {
-	chatID := update.CallbackQuery.Message.GetChat().ID
-
-	//TODO: add i18n support
-	if err := s.sendForceReply(bot, chatID, "enter the new main player"); err != nil {
-		s.deps.Logger.Errorw("failed to send message", "error", err)
-		return
-	}
-
-	if err := bot.AnswerCallbackQuery(tu.CallbackQuery(update.CallbackQuery.ID)); err != nil {
-		s.deps.Logger.Errorw("failed to answer callback", "error", err)
-		return
-	}
+	callbackQueryID := update.CallbackQuery.Message.GetChat().ID
+	sendForceReply(bot, callbackQueryID, "enter the new main player", s.deps.Logger)
+	answerCallback(bot, update.CallbackQuery.ID, s.deps.Logger)
 }
 
 func (s *Subscription) HandleNewPersonalSubReply(bot *telego.Bot, update telego.Update) {
-	chatID := update.Message.Chat.ID
-
-	telegoChatID := tu.ID(chatID)
-
-	userMessage := strings.TrimSpace(update.Message.Text)
-	if userMessage == "" {
-		_, err := bot.SendMessage(tu.Message(telegoChatID, "Please enter a valid nickname.").
-			WithParseMode(telego.ModeHTML))
-		if err != nil {
-			s.deps.Logger.Errorw("send message error", "error", err)
-		}
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(s.deps.Ctx, customCtxTimeOutForSubscription)
 	defer cancel()
 
-	err := s.deps.PersonalSubRepo.SetPersonalSub(ctx, chatID, userMessage)
+	nickname := strings.TrimSpace(update.Message.Text)
+	telegramChatID := update.Message.Chat.ID
+	err := s.deps.PersonalSubRepo.SetPersonalSub(ctx, telegramChatID, nickname)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to set personal sub", "error", err)
-		_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Error setting personal sub. Please try again."))
-		if sendErr != nil {
-			s.deps.Logger.Errorw("send message error", "error", sendErr)
-		}
+		reply(bot, telegramChatID, "Error setting personal sub. Please try again.", s.deps.Logger)
 		return
 	}
 
-	_, sendErr := bot.SendMessage(tu.Message(telegoChatID, "Successfully set personal sub."))
-	if sendErr != nil {
-		s.deps.Logger.Errorw("send message error", "error", sendErr)
-	}
+	reply(bot, telegramChatID, "Successfully set personal sub.", s.deps.Logger)
 }
 
 func IsNewPersonalSubReplyMessage() th.Predicate {

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+
 	"github.com/anlukk/faceit-tracker/internal/config"
 	"github.com/anlukk/faceit-tracker/internal/db"
 	"github.com/anlukk/faceit-tracker/internal/faceit"
@@ -16,4 +18,6 @@ type Dependencies struct {
 	SubscriptionRepo db.SubscriptionDB
 
 	PersonalSubRepo db.PersonalSubDB
+
+	Ctx context.Context // root  context
 }

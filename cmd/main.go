@@ -56,6 +56,9 @@ func main() {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	dependencies := &core.Dependencies{
 		Config:           cfg,
 		Messages:         &messages,
@@ -64,6 +67,7 @@ func main() {
 		SettingsRepo:     db.NewSettingsDBImpl(dbConn),
 		SubscriptionRepo: db.NewSubscriptionDBImpl(dbConn),
 		PersonalSubRepo:  db.NewPersonalSubDBImpl(dbConn),
+		Ctx:              ctx,
 	}
 
 	telegramService, err := telegram.NewTelegram(dependencies)
@@ -78,9 +82,6 @@ func main() {
 	messenger := adapters.NewMessengerAdapter(telegramService.Bot())
 	eventRegistry := events.Registry(dependencies)
 	n := notifier.New(dependencies, messenger, *eventRegistry)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sugar.Info("Starting notifier...")
 	go n.Run(ctx)

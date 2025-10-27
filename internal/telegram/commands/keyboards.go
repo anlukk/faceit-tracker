@@ -112,16 +112,3 @@ func BuildSettingsKeyboard(
 		),
 	)
 }
-
-//func BuildLanguageKeyboard() *telego.InlineKeyboardMarkup {
-//	return tu.InlineKeyboard(
-//		tu.InlineKeyboardRow(
-//			tu.InlineKeyboardButton("English").
-//				WithCallbackData("language:en"),
-//		),
-//		tu.InlineKeyboardRow(
-//			tu.InlineKeyboardButton("Russian").
-//				WithCallbackData("language:ru"),
-//		),
-//	)
-//}

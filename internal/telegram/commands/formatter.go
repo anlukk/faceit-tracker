@@ -5,12 +5,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anlukk/faceit-tracker/internal/core"
-	"github.com/anlukk/faceit-tracker/internal/db/models"
 	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 )
 
-// TODO: add i18n support
 func formatSearchCommandResponse(response *faceit.Player) string {
 	gamesStr := ""
 	for game, gameInfo := range response.Games {
@@ -22,21 +19,6 @@ func formatSearchCommandResponse(response *faceit.Player) string {
 		response.Nickname, response.Country, gamesStr, response.SteamNickname)
 }
 
-// TODO: add i18n support
-func formatSubscriptionsList(deps *core.Dependencies, subs []models.Subscription) string {
-	if len(subs) == 0 {
-		return deps.Messages.NoSubscriptions
-	}
-
-	sb := "Your subscription:\n"
-	for i, sub := range subs {
-		sb += fmt.Sprintf("%d. %s\n", i+1, sub.Nickname)
-	}
-
-	return sb
-}
-
-// TODO: add i18n support
 func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 	if p == nil {
 		return "❌ Player not found"
