@@ -15,10 +15,7 @@ type FaceitClient interface {
 		nickname string) (string, error)
 	GetLastMatch(
 		ctx context.Context,
-		nickname string) (faceit3.Match, error)
-	GetOngoingMatchInfo(
-		ctx context.Context,
-		nickname string) (*OngoingMatchInfo, error)
+		playerID string) (faceit3.Match, error)
 	GetFinishMatchResult(
 		ctx context.Context,
 		nickname string) (*FinishMatchResult, error)

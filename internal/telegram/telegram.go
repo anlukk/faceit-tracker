@@ -131,11 +131,6 @@ func (t *Telegram) registerCommands() error {
 		commands.IsUnsubscriptionReplyMessage(),
 	)
 
-	//t.handlers.Handle(
-	//	t.commands.Subscription.HandleSubscriptionsListButton,
-	//	th.CallbackDataEqual("list"),
-	//)
-
 	t.handlers.Handle(
 		t.commands.PlayerCard.HandlePlayerButton,
 		th.CallbackDataPrefix("player:"),

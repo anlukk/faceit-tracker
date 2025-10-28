@@ -29,9 +29,8 @@ func NewClient(apiToken string) (*Client, error) {
 	cfg := faceit3.NewConfiguration()
 	cfg.AddDefaultHeader("Authorization", "Bearer "+apiToken)
 
-	client := faceit3.NewAPIClient(cfg)
 	return &Client{
-		client: client,
+		client: faceit3.NewAPIClient(cfg),
 		token:  apiToken,
 	}, nil
 }
@@ -67,8 +66,7 @@ func (f *Client) GetPlayerIDByNickname(
 		return "", ErrEmptyNickname
 	}
 
-	res, _, err := f.client.
-		SearchApi.
+	res, _, err := f.client.SearchApi.
 		SearchPlayers(ctx, nickname, &faceit3.SearchApiSearchPlayersOpts{
 			Limit: optional.NewInt32(1),
 		})
@@ -85,18 +83,12 @@ func (f *Client) GetPlayerIDByNickname(
 
 func (f *Client) GetLastMatch(
 	ctx context.Context,
-	nickname string) (faceit3.Match, error) {
-	if nickname == "" {
-		return faceit3.Match{}, ErrEmptyNickname
+	playerID string) (faceit3.Match, error) {
+	if playerID == "" {
+		return faceit3.Match{}, errors.New("player ID is empty")
 	}
 
-	playerID, err := f.GetPlayerIDByNickname(ctx, nickname)
-	if err != nil {
-		return faceit3.Match{}, fmt.Errorf("get player id: %w", err)
-	}
-
-	history, _, err := f.client.
-		PlayersApi.
+	history, _, err := f.client.PlayersApi.
 		GetPlayerHistory(ctx, playerID, "cs2", &faceit3.PlayersApiGetPlayerHistoryOpts{
 			Limit: optional.NewInt32(1),
 		})
@@ -121,37 +113,6 @@ func (f *Client) GetLastMatch(
 	return match, nil
 }
 
-func (f *Client) GetOngoingMatchInfo(
-	ctx context.Context,
-	nickname string) (*OngoingMatchInfo, error) {
-	if nickname == "" {
-		return nil, ErrEmptyNickname
-	}
-
-	lastMatch, err := f.GetLastMatch(ctx, nickname)
-	if err != nil {
-		return nil, fmt.Errorf("get last match: %w", err)
-	}
-
-	if lastMatch.Status != "ONGOING" && lastMatch.Status != "READY" {
-		return nil, fmt.Errorf("match not ongoing")
-	}
-
-	teams := make([]string, 0, 2)
-	for _, team := range lastMatch.Teams {
-		teams = append(teams, team.Name)
-	}
-
-	return &OngoingMatchInfo{
-		Nickname: nickname,
-		MatchID:  lastMatch.MatchId,
-		Elo:      lastMatch.CalculateElo,
-		StartAt:  lastMatch.StartedAt,
-		Team1:    teams[0],
-		Team2:    teams[1],
-	}, nil
-}
-
 func (f *Client) GetFinishMatchResult(
 	ctx context.Context,
 	nickname string) (*FinishMatchResult, error) {
@@ -159,18 +120,20 @@ func (f *Client) GetFinishMatchResult(
 		return nil, ErrEmptyNickname
 	}
 
-	lastMatch, err := f.GetLastMatch(ctx, nickname)
+	playerID, err := f.GetPlayerIDByNickname(ctx, nickname)
+	if err != nil {
+		return nil, fmt.Errorf("get player id: %w", err)
+	}
+
+	lastMatch, err := f.GetLastMatch(ctx, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("get last match: %w", err)
 	}
 
-	if lastMatch.Status != "FINISHED" || lastMatch.Results == nil || lastMatch.Results.Score == nil {
+	if lastMatch.Status != "FINISHED" ||
+		lastMatch.Results == nil ||
+		lastMatch.Results.Score == nil {
 		return nil, fmt.Errorf("match not finished or missing score")
-	}
-
-	playerID, err := f.GetPlayerIDByNickname(ctx, nickname)
-	if err != nil {
-		return nil, fmt.Errorf("get player id: %w", err)
 	}
 
 	var playerTeamKey, opponentTeamKey string
@@ -226,7 +189,9 @@ func (f *Client) GetFinishMatchResult(
 	}, nil
 }
 
-func (f *Client) getRoundScore(ctx context.Context, matchID string) (int, int, error) {
+func (f *Client) getRoundScore(
+	ctx context.Context,
+	matchID string) (int, int, error) {
 	req, _ := http.NewRequestWithContext(ctx,
 		http.MethodGet,
 		fmt.Sprintf("https://open.faceit.com/data/v4/matches/%s/stats", matchID),

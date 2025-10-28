@@ -8,17 +8,6 @@ import (
 	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
 )
 
-func formatSearchCommandResponse(response *faceit.Player) string {
-	gamesStr := ""
-	for game, gameInfo := range response.Games {
-		gamesStr += fmt.Sprintf("Game: %s, FaceitElo: %d, SkillLevel: %d\n",
-			game, gameInfo.FaceitElo, gameInfo.SkillLevel)
-	}
-
-	return fmt.Sprintf("Nickname: %s\n"+"Country: %s\n"+"Games: %s\n"+"Steam nickname: %s\n",
-		response.Nickname, response.Country, gamesStr, response.SteamNickname)
-}
-
 func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 	if p == nil {
 		return "❌ Player not found"

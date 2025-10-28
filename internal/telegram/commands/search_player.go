@@ -41,14 +41,19 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 	ctx, cancel := context.WithTimeout(s.deps.Ctx, customCtxTimeOutForPlayerSearchCommand)
 	defer cancel()
 
-	nicknameInput := strings.TrimSpace(update.Message.Text)
-	response, err := s.deps.Faceit.GetPlayerByNickname(ctx, nicknameInput)
+	nickname := strings.TrimSpace(update.Message.Text)
+	response, err := s.deps.Faceit.GetPlayerByNickname(ctx, nickname)
 	if err != nil {
 		s.deps.Logger.Errorw("failed to get user from search player command", "error", err)
 		return
 	}
 
-	formattedResponse := formatSearchCommandResponse(&response)
+	lastTenMatches, err := s.deps.Faceit.GetStatForLastTenMatches(s.deps.Ctx, nickname)
+	if err != nil {
+		s.deps.Logger.Errorw("failed to get last ten matches", "error", err)
+	}
+
+	formattedResponse := formatPlayerCard(&response, lastTenMatches)
 
 	telegramChatID := update.Message.Chat.ID
 	reply(bot, telegramChatID, formattedResponse, s.deps.Logger)
