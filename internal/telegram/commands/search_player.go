@@ -53,7 +53,7 @@ func (s *SearchPlayer) HandleUserMessage(bot *telego.Bot, update telego.Update) 
 		s.deps.Logger.Errorw("failed to get last ten matches", "error", err)
 	}
 
-	formattedResponse := formatPlayerCard(&response, lastTenMatches)
+	formattedResponse := formatSearchCommandPlayerCard(&response, lastTenMatches)
 
 	telegramChatID := update.Message.Chat.ID
 	reply(bot, telegramChatID, formattedResponse, s.deps.Logger)

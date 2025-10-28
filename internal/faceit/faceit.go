@@ -101,6 +101,26 @@ func (f *Client) GetLastMatch(
 	}
 
 	matchID := history.Items[0].MatchId
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
+	fmt.Println(matchID)
 	if matchID == "" {
 		return faceit3.Match{}, fmt.Errorf("match id is empty")
 	}
