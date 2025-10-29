@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"math"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/anlukk/faceit-tracker/internal/faceit/pkg/go-faceit"
@@ -15,7 +17,6 @@ func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 
 	var b strings.Builder
 
-	// Флаг и верификация
 	flag := countryFlag(p.Country)
 	if flag == "" {
 		flag = "🌍"
@@ -26,16 +27,13 @@ func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 	}
 	fmt.Fprintf(&b, "<b>%s</b> %s%s\n", p.Nickname, flag, verified)
 
-	// Ссылка на профиль
 	urlNick := url.PathEscape(p.Nickname)
 	fmt.Fprintf(&b, "<a href=\"https://www.faceit.com/players/%s\">🔗 Faceit Profile</a>\n", urlNick)
 
-	// Дата регистрации
 	if !p.ActivatedAt.IsZero() {
 		fmt.Fprintf(&b, "🕓 Joined: %s\n\n", p.ActivatedAt.Format("02 Jan 2006"))
 	}
 
-	// Игровая статистика CS2
 	if cs2, ok := p.Games["cs2"]; ok {
 		fmt.Fprintf(&b, "<b>🎮 CS2:</b>\n")
 		fmt.Fprintf(&b, "• 🧠 Skill level: <b>%d</b>\n", cs2.SkillLevel)
@@ -50,7 +48,6 @@ func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 		b.WriteString("\n")
 	}
 
-	// Membership
 	if len(p.Memberships) > 0 {
 		b.WriteString("<b>🏅 Membership:</b>\n")
 		for _, m := range p.Memberships {
@@ -59,9 +56,55 @@ func formatPlayerCard(p *faceit.Player, matches []faceit.MatchStats) string {
 		b.WriteString("\n")
 	}
 
-	// Последние матчи
 	if len(matches) > 0 {
-		b.WriteString("<b>📊 Last 5 matches:</b>\n\n")
+		limit := 5
+		if len(matches) < limit {
+			limit = len(matches)
+		}
+
+		var wins, totalKills, totalDeaths int
+
+		for i, m := range matches {
+			if i >= limit {
+				break
+			}
+
+			for _, round := range m.Rounds {
+				for _, team := range round.Teams {
+					for _, player := range team.Players {
+						if strings.EqualFold(player.Nickname.(string), p.Nickname) {
+							ps := player.PlayerStats
+							k := atoi(getString(ps, "Kills"))
+							d := atoi(getString(ps, "Deaths"))
+							res := getString(ps, "Result")
+
+							totalKills += k
+							totalDeaths += d
+							if res == "1" {
+								wins++
+							}
+						}
+					}
+				}
+			}
+
+			if wins >= limit {
+				break
+			}
+		}
+
+		winrate := float64(wins) / float64(limit) * 100
+		avgKills := float64(totalKills) / float64(limit)
+		avgDeaths := float64(totalDeaths) / float64(limit)
+		avgKD := float64(totalKills) / math.Max(1, float64(totalDeaths))
+
+		b.WriteString("<b>📈 Summary (Last Matches):</b>\n")
+		fmt.Fprintf(&b, "• ✅ Winrate: <b>%.1f%%</b> (%d/%d)\n", winrate, wins, limit)
+		fmt.Fprintf(&b, "• 🔫 Avg Kills: <b>%.1f</b>\n", avgKills)
+		fmt.Fprintf(&b, "• ☠️ Avg Deaths: <b>%.1f</b>\n", avgDeaths)
+		fmt.Fprintf(&b, "• ⚖️ K/D Ratio: <b>%.2f</b>\n\n", avgKD)
+
+		b.WriteString("<b>📊 Last 5 matches:</b>\n")
 
 		for i, m := range matches {
 			if i >= 5 {
@@ -139,82 +182,53 @@ func formatSearchCommandPlayerCard(p *faceit.Player, matches []faceit.MatchStats
 		verified = " ✅"
 	}
 
-	fmt.Fprintf(&b, "<b>%s</b> %s%s\n", p.Nickname, flag, verified)
+	fmt.Fprintf(&b, "%s %s%s\n", p.Nickname, flag, verified)
 
 	urlNick := url.PathEscape(p.Nickname)
-	fmt.Fprintf(&b, "<a href=\"https://www.faceit.com/players/%s\">🔗 Faceit Profile</a>\n", urlNick)
+	fmt.Fprintf(&b, "🔗 <a href=\"https://www.faceit.com/players/%s\">Faceit Profile</a>\n", urlNick)
 
-	if !p.ActivatedAt.IsZero() {
-		fmt.Fprintf(&b, "🕓 Joined: %s\n\n", p.ActivatedAt.Format("02 Jan 2006"))
-	}
-
-	cs2, ok := p.Games["cs2"]
-
-	if ok {
-		b.WriteString("<b>🎮 CS2:</b>\n")
-		fmt.Fprintf(&b, "• 🧠 Skill level: <b>%d</b>\n", cs2.SkillLevel)
-		if cs2.SkillLevelLabel != "" {
-			fmt.Fprintf(&b, "• 🏆 Skill label: %s\n", cs2.SkillLevelLabel)
-		}
-		fmt.Fprintf(&b, "• 🧮 ELO: <b>%d</b>\n", cs2.FaceitElo)
-		fmt.Fprintf(&b, "• 🧭 Region: %s\n", cs2.Region)
-		if cs2.GamePlayerName != "" {
-			fmt.Fprintf(&b, "• 🎮 In-game name: %s\n", cs2.GamePlayerName)
-		}
-		b.WriteString("\n")
-	}
-
-	if len(p.Memberships) > 0 {
-		b.WriteString("<b>🏅 Membership:</b>\n")
-		for _, m := range p.Memberships {
-			fmt.Fprintf(&b, "• %s\n", strings.Title(m))
-		}
-		b.WriteString("\n")
+	if cs2, ok := p.Games["cs2"]; ok {
+		fmt.Fprintf(&b, "🎮 CS2: Lvl %d | ELO %d | 🌍 %s\n", cs2.SkillLevel, cs2.FaceitElo, strings.ToUpper(cs2.Region))
 	}
 
 	if len(matches) > 0 {
-		b.WriteString("<b>📊 Last 10 matches:</b>\n")
+		total := len(matches)
+		var wins, kills, deaths int
 
-		for i, m := range matches {
-			if i >= 10 {
-				break
-			}
-
+		for _, m := range matches {
 			for _, round := range m.Rounds {
-				mapName := getString(round.RoundStats, "Map")
-
-				team1Score := getString(round.Teams[0].TeamStats, "Final Score")
-				team2Score := getString(round.Teams[1].TeamStats, "Final Score")
-
 				for _, team := range round.Teams {
 					for _, player := range team.Players {
 						if strings.EqualFold(player.Nickname.(string), p.Nickname) {
 							ps := player.PlayerStats
+							k := atoi(getString(ps, "Kills"))
+							d := atoi(getString(ps, "Deaths"))
+							res := getString(ps, "Result")
 
-							kills := getString(ps, "Kills")
-							deaths := getString(ps, "Deaths")
-
-							result := getString(ps, "Result")
-
-							switch result {
-							case "1":
-								result = "✅ Win"
-							case "0":
-								result = "❌ Loss"
-							default:
-								result = "❔ Unknown"
+							kills += k
+							deaths += d
+							if res == "1" {
+								wins++
 							}
-
-							fmt.Fprintf(&b, "• %s — %s — %s/%s — %s:%s\n",
-								mapName, result, kills, deaths, team1Score, team2Score)
 						}
 					}
 				}
 			}
 		}
+
+		winrate := float64(wins) / float64(total) * 100
+		avgKills := float64(kills) / float64(total)
+		avgKD := float64(kills) / math.Max(1, float64(deaths))
+
+		fmt.Fprintf(&b, "📈 Winrate: %.0f%% | Avg K/D: %.2f | Avg Kills: %.0f", winrate, avgKD, avgKills)
 	}
 
 	return b.String()
+}
+
+func atoi(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }
 
 func getString(m map[string]interface{}, key string) string {
